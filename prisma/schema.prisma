@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum InvoiceStatus {
+  NON_PAYEE
+  PARTIELLEMENT_PAYEE
+  PAYEE
+  ANNULEE
+}
+
+enum StockMovementType {
+  ENTREE
+  SORTIE
+  AJUSTEMENT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  stockMovements StockMovement[]
+
+  @@map("users")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  products Product[]
+
+  @@map("brands")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  reference    String   @unique
+  name         String
+  imageUrl     String?
+  quantity     Int      @default(0)
+  rmb          Decimal  @db.Decimal(10, 2)
+  sellingPrice Decimal? @db.Decimal(10, 2)
+  minimumStock Int      @default(0)
+  location     String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id])
+
+  invoiceItems   InvoiceItem[]
+  stockMovements StockMovement[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@map("products")
+}
+
+model StockMovement {
+  id        String            @id @default(cuid())
+  type      StockMovementType
+  quantity  Int               // delta signé appliqué au stock (positif = entrée, négatif = sortie)
+  reference String?
+  note      String?
+  createdAt DateTime          @default(now())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([invoiceId])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoices Invoice[]
+
+  @@index([name])
+  @@map("customers")
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  number          String        @unique
+  date            DateTime      @default(now())
+  subtotal        Decimal       @db.Decimal(10, 2)
+  vatRate         Decimal       @db.Decimal(5, 2)
+  vatAmount       Decimal       @db.Decimal(10, 2)
+  total           Decimal       @db.Decimal(10, 2)
+  paidAmount      Decimal       @db.Decimal(10, 2) @default(0)
+  remainingAmount Decimal       @db.Decimal(10, 2)
+  status          InvoiceStatus @default(NON_PAYEE)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  items          InvoiceItem[]
+  stockMovements StockMovement[]
+  payments       Payment[]
+
+  @@index([customerId])
+  @@index([date])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  amount    Decimal  @db.Decimal(10, 2)
+  date      DateTime @default(now())
+  method    String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("payments")
+}
+
+model Settings {
+  id                   String   @id @default("singleton")
+  companyName          String   @default("VHU MAROC")
+  companyLogoUrl       String?
+  companyAddress       String?
+  companyPhone         String?
+  companyEmail         String?
+  ice                  String?
+  defaultVatRate       Decimal  @db.Decimal(5, 2) @default(20.00)
+  invoicePrefix        String   @default("FAC")
+  invoiceNumberPadding Int      @default(4)
+  updatedAt            DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model InvoiceCounter {
+  id         String @id @default("singleton")
+  lastNumber Int    @default(0)
+
+  @@map("invoice_counter")
+}
