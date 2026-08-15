@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { requireSession } from "@/lib/authz";
 import {
   adjustStockSchema,
   productSchema,
   productUpdateSchema,
 } from "@/lib/validation/product";
-import { saveProductPhoto } from "@/lib/upload";
+import { saveProductPhoto, UploadValidationError } from "@/lib/upload";
 import { recordStockMovement } from "@/lib/stock";
 
 export type ActionState = { error: string } | undefined;
@@ -46,7 +46,7 @@ export async function createProduct(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const session = await auth();
+  const session = await requireSession();
 
   const parsed = productSchema.safeParse({
     reference: formData.get("reference"),
@@ -72,10 +72,14 @@ export async function createProduct(
   }
 
   const photo = formData.get("photo");
-  const imageUrl =
-    photo instanceof File && photo.size > 0
-      ? await saveProductPhoto(photo)
-      : undefined;
+  let imageUrl: string | undefined;
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      imageUrl = await saveProductPhoto(photo);
+    } catch (err) {
+      return { error: err instanceof UploadValidationError ? err.message : "Échec de l'upload." };
+    }
+  }
 
   await prisma.$transaction(async (tx) => {
     const { categoryId, brandId } = await resolveTaxonomyIds(
@@ -119,6 +123,8 @@ export async function updateProduct(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  await requireSession();
+
   const parsed = productUpdateSchema.safeParse({
     reference: formData.get("reference"),
     name: formData.get("name"),
@@ -142,10 +148,14 @@ export async function updateProduct(
   }
 
   const photo = formData.get("photo");
-  const imageUrl =
-    photo instanceof File && photo.size > 0
-      ? await saveProductPhoto(photo)
-      : undefined;
+  let imageUrl: string | undefined;
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      imageUrl = await saveProductPhoto(photo);
+    } catch (err) {
+      return { error: err instanceof UploadValidationError ? err.message : "Échec de l'upload." };
+    }
+  }
 
   await prisma.$transaction(async (tx) => {
     const { categoryId, brandId } = await resolveTaxonomyIds(
@@ -175,6 +185,8 @@ export async function updateProduct(
 }
 
 export async function deactivateProduct(id: string) {
+  await requireSession();
+
   await prisma.product.update({
     where: { id },
     data: { isActive: false },
@@ -186,7 +198,7 @@ export async function adjustStock(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const session = await auth();
+  const session = await requireSession();
 
   const parsed = adjustStockSchema.safeParse({
     productId: formData.get("productId"),

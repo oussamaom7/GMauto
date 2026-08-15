@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireSession } from "@/lib/authz";
 import { customerSchema } from "@/lib/validation/customer";
 
 export type ActionState = { error: string } | undefined;
@@ -11,6 +12,8 @@ export async function createCustomer(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  await requireSession();
+
   const parsed = customerSchema.safeParse({
     name: formData.get("name"),
     phone: formData.get("phone") || undefined,
@@ -40,6 +43,8 @@ export async function updateCustomer(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  await requireSession();
+
   const parsed = customerSchema.safeParse({
     name: formData.get("name"),
     phone: formData.get("phone") || undefined,

@@ -34,6 +34,8 @@ export async function GET(
       headers: {
         "Content-Type": CONTENT_TYPE_BY_EXT[ext] ?? "application/octet-stream",
         "Cache-Control": "private, max-age=3600",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": "inline",
       },
     });
   } catch {

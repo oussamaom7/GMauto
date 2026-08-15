@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { InvoiceStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { requireSession } from "@/lib/authz";
 import { createInvoiceSchema, recordPaymentSchema } from "@/lib/validation/invoice";
 import { getNextInvoiceNumber } from "@/lib/invoiceNumbering";
 import { getSettings } from "@/lib/settings";
@@ -22,7 +22,7 @@ export async function createInvoice(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const session = await auth();
+  const session = await requireSession();
 
   let itemsRaw: unknown;
   try {
@@ -129,6 +129,8 @@ export async function recordPayment(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  await requireSession();
+
   const parsed = recordPaymentSchema.safeParse({
     invoiceId: formData.get("invoiceId"),
     amount: formData.get("amount"),
@@ -183,7 +185,7 @@ export async function recordPayment(
 }
 
 export async function voidInvoice(invoiceId: string) {
-  const session = await auth();
+  const session = await requireSession();
 
   const customerId = await prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({

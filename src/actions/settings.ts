@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { requireSession } from "@/lib/authz";
 import { settingsSchema } from "@/lib/validation/settings";
-import { saveCompanyLogo } from "@/lib/upload";
+import { saveCompanyLogo, UploadValidationError } from "@/lib/upload";
 
 export type ActionState = { error: string } | undefined;
 
@@ -11,6 +12,8 @@ export async function updateSettings(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  await requireSession();
+
   const parsed = settingsSchema.safeParse({
     companyName: formData.get("companyName"),
     companyAddress: formData.get("companyAddress") || undefined,
@@ -27,8 +30,14 @@ export async function updateSettings(
   }
 
   const logo = formData.get("logo");
-  const companyLogoUrl =
-    logo instanceof File && logo.size > 0 ? await saveCompanyLogo(logo) : undefined;
+  let companyLogoUrl: string | undefined;
+  if (logo instanceof File && logo.size > 0) {
+    try {
+      companyLogoUrl = await saveCompanyLogo(logo);
+    } catch (err) {
+      return { error: err instanceof UploadValidationError ? err.message : "Échec de l'upload." };
+    }
+  }
 
   await prisma.settings.upsert({
     where: { id: "singleton" },

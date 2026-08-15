@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: vhu
-      POSTGRES_PASSWORD: vhu_dev_password
+      POSTGRES_PASSWORD: oussama7
       POSTGRES_DB: vhu_maroc
     ports:
       - "5433:5432"
