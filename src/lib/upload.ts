@@ -1,9 +1,17 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { put } from "@vercel/blob";
 
 const UPLOAD_ROOT = path.join(process.cwd(), "storage", "uploads");
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+const CONTENT_TYPE_BY_EXT: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
 
 export class UploadValidationError extends Error {}
 
@@ -47,6 +55,12 @@ function detectImageExtension(buffer: Buffer): string | null {
   return null;
 }
 
+/**
+ * Storage backend is picked at runtime: Vercel Blob when a store is attached
+ * (BLOB_READ_WRITE_TOKEN is auto-injected by Vercel), local disk otherwise —
+ * so local dev needs no cloud credentials, and production on Vercel (whose
+ * filesystem is ephemeral) gets persistent storage automatically.
+ */
 async function saveUploadedFile(file: File, subfolder: string): Promise<string> {
   if (file.size > MAX_FILE_SIZE) {
     throw new UploadValidationError("Fichier trop volumineux (5 Mo maximum).");
@@ -59,11 +73,18 @@ async function saveUploadedFile(file: File, subfolder: string): Promise<string> 
   }
 
   const filename = `${crypto.randomUUID()}${ext}`;
-  const dir = path.join(UPLOAD_ROOT, subfolder);
 
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(`${subfolder}/${filename}`, buffer, {
+      access: "public",
+      contentType: CONTENT_TYPE_BY_EXT[ext],
+    });
+    return blob.url;
+  }
+
+  const dir = path.join(UPLOAD_ROOT, subfolder);
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, filename), buffer);
-
   return `${subfolder}/${filename}`;
 }
 

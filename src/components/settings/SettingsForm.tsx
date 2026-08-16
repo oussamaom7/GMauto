@@ -8,6 +8,7 @@ import type { ActionState } from "@/actions/settings";
 import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/FormControls";
 import { Button } from "@/components/ui/Button";
+import { resolveMediaUrl } from "@/lib/media";
 
 type SettingsValues = {
   companyName: string;
@@ -46,7 +47,7 @@ export function SettingsForm({ initialValues }: { initialValues: SettingsValues 
             {initialValues.companyLogoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`/api/uploads/${initialValues.companyLogoUrl}`}
+                src={resolveMediaUrl(initialValues.companyLogoUrl) ?? undefined}
                 alt=""
                 className="h-16 w-16 rounded-lg object-contain ring-1 ring-zinc-200 dark:ring-zinc-800"
               />

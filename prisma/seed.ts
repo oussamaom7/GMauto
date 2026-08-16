@@ -35,6 +35,11 @@ async function main() {
     create: { id: "singleton", lastNumber: 0 },
   });
 
+  if (process.env.SEED_SAMPLE_PRODUCTS !== "true") {
+    console.log("Seed terminé (admin/settings uniquement — SEED_SAMPLE_PRODUCTS non activé).");
+    return;
+  }
+
   const [moteur, carrosserie] = await Promise.all([
     prisma.category.upsert({
       where: { name: "Moteur" },

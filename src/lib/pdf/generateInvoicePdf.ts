@@ -22,9 +22,14 @@ export async function generateInvoicePdf(
   let logoBuffer: Buffer | null = null;
   if (settings.companyLogoUrl) {
     try {
-      logoBuffer = await readFile(
-        path.join(process.cwd(), "storage", "uploads", settings.companyLogoUrl)
-      );
+      if (settings.companyLogoUrl.startsWith("http")) {
+        const res = await fetch(settings.companyLogoUrl);
+        logoBuffer = res.ok ? Buffer.from(await res.arrayBuffer()) : null;
+      } else {
+        logoBuffer = await readFile(
+          path.join(process.cwd(), "storage", "uploads", settings.companyLogoUrl)
+        );
+      }
     } catch {
       logoBuffer = null;
     }

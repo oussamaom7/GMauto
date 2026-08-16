@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/FormControls";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/format";
+import { resolveMediaUrl } from "@/lib/media";
 
 type ProductFormValues = {
   reference: string;
@@ -48,7 +49,7 @@ export function ProductForm({
             {initialValues?.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`/api/uploads/${initialValues.imageUrl}`}
+                src={resolveMediaUrl(initialValues.imageUrl) ?? undefined}
                 alt=""
                 className="h-16 w-16 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
               />

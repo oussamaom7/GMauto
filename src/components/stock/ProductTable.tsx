@@ -4,6 +4,7 @@ import { Table, THead, TH, TR, TD } from "@/components/ui/Table";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/format";
+import { resolveMediaUrl } from "@/lib/media";
 import { deactivateProduct } from "@/actions/products";
 
 type ProductRow = {
@@ -54,7 +55,7 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
               {product.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/uploads/${product.imageUrl}`}
+                  src={resolveMediaUrl(product.imageUrl) ?? undefined}
                   alt={product.name}
                   className="h-11 w-11 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
                 />
