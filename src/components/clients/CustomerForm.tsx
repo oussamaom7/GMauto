@@ -27,7 +27,7 @@ export function CustomerForm({
           <Input id="name" name="name" required defaultValue={initialValues?.name} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Téléphone" htmlFor="phone">
             <Input id="phone" name="phone" defaultValue={initialValues?.phone ?? undefined} />
           </Field>

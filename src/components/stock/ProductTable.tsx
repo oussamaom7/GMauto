@@ -38,12 +38,12 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
   }
 
   return (
-    <Table minWidth={780}>
+    <Table>
       <THead>
-        <TH>Photo</TH>
+        <TH className="hidden sm:table-cell">Photo</TH>
         <TH>Référence / Pièce</TH>
         <TH>Quantité</TH>
-        <TH>RMB</TH>
+        <TH className="hidden sm:table-cell">RMB</TH>
         <TH>Total</TH>
         <TH>Stock</TH>
         <TH />
@@ -51,7 +51,7 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
       <tbody>
         {products.map((product) => (
           <TR key={product.id}>
-            <TD>
+            <TD className="hidden sm:table-cell">
               {product.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -74,7 +74,7 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
               </p>
             </TD>
             <TD className="tabular-nums">{product.quantity}</TD>
-            <TD className="tabular-nums">{formatCurrency(product.rmb)}</TD>
+            <TD className="hidden tabular-nums sm:table-cell">{formatCurrency(product.rmb)}</TD>
             <TD className="tabular-nums font-medium">
               {formatCurrency(Number(product.rmb) * product.quantity)}
             </TD>

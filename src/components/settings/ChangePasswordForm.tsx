@@ -39,7 +39,7 @@ export function ChangePasswordForm() {
         onSubmit={() => setAttempted(true)}
         className="space-y-4"
       >
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Mot de passe actuel" htmlFor="currentPassword">
             <Input id="currentPassword" type="password" name="currentPassword" required />
           </Field>

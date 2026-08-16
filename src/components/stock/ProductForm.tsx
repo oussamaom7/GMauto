@@ -67,7 +67,7 @@ export function ProductForm({
           </div>
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Référence" htmlFor="reference">
             <Input id="reference" name="reference" required defaultValue={initialValues?.reference} />
           </Field>
@@ -76,7 +76,7 @@ export function ProductForm({
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Catégorie" htmlFor="category">
             <Input id="category" name="category" list="category-options" defaultValue={initialValues?.category} />
             <datalist id="category-options">
@@ -95,7 +95,7 @@ export function ProductForm({
           </Field>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {mode === "create" ? (
             <Field label="Quantité" htmlFor="quantity">
               <Input
@@ -130,7 +130,7 @@ export function ProductForm({
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Prix de vente" htmlFor="sellingPrice">
             <Input
               id="sellingPrice"

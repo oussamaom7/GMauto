@@ -112,7 +112,7 @@ export function InvoiceForm({
       <input type="hidden" name="itemsJson" value={itemsJson} />
 
       <Card>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <Label className="mb-0">Client</Label>
           {customers.length > 0 && (
             <div className="flex overflow-hidden rounded-lg border border-zinc-200 text-xs font-medium dark:border-zinc-700">
@@ -143,7 +143,7 @@ export function InvoiceForm({
         </div>
 
         {clientMode === "existing" ? (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Select name="customerId" required>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -156,7 +156,7 @@ export function InvoiceForm({
             </Field>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <Input name="newCustomerName" placeholder="Nom du client" required />
             <Input name="newCustomerPhone" placeholder="Téléphone" />
             <Input name="newCustomerEmail" type="email" placeholder="Email" />
@@ -181,9 +181,9 @@ export function InvoiceForm({
                 key={item.key}
                 className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/40"
               >
-                <div className="grid grid-cols-12 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-12">
                   <Select
-                    className="col-span-3"
+                    className="col-span-2 sm:col-span-3"
                     value={item.productId ?? ""}
                     onChange={(e) => onProductSelect(item.key, e.target.value)}
                   >
@@ -196,7 +196,7 @@ export function InvoiceForm({
                   </Select>
 
                   <Input
-                    className="col-span-4"
+                    className="col-span-2 sm:col-span-4"
                     placeholder="Désignation"
                     value={item.description}
                     onChange={(e) => updateRow(item.key, { description: e.target.value })}
@@ -215,24 +215,25 @@ export function InvoiceForm({
                   <Input
                     type="number"
                     step="0.01"
-                    className="col-span-2"
+                    className="col-span-1 sm:col-span-2"
                     value={item.unitPrice}
                     onChange={(e) =>
                       updateRow(item.key, { unitPrice: Number(e.target.value) || 0 })
                     }
                   />
 
-                  <div className="col-span-1 flex items-center justify-end px-1 text-sm font-medium tabular-nums text-zinc-700 dark:text-zinc-300">
+                  <div className="col-span-1 flex items-center px-1 text-sm font-medium tabular-nums text-zinc-700 dark:text-zinc-300 sm:col-span-1 sm:justify-end">
                     {formatInvoiceAmount(item.quantity * item.unitPrice)}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => removeRow(item.key)}
-                    className="col-span-1 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                    className="col-span-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 sm:col-span-1 sm:py-0"
                     title="Retirer la ligne"
                   >
                     <Trash2 size={16} />
+                    <span className="sm:hidden">Retirer</span>
                   </button>
                 </div>
                 {insufficientStock && (

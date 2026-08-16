@@ -69,7 +69,7 @@ export function SettingsForm({ initialValues }: { initialValues: SettingsValues 
           <Input id="companyName" name="companyName" required defaultValue={initialValues.companyName} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Téléphone" htmlFor="companyPhone">
             <Input id="companyPhone" name="companyPhone" defaultValue={initialValues.companyPhone ?? undefined} />
           </Field>
@@ -95,7 +95,7 @@ export function SettingsForm({ initialValues }: { initialValues: SettingsValues 
       <Card className="space-y-4">
         <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Facturation</h2>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="TVA par défaut (%)" htmlFor="defaultVatRate">
             <Input
               id="defaultVatRate"
