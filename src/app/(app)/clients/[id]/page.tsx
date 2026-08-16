@@ -28,8 +28,16 @@ export default async function ClientDetailPage({
   }
 
   const activeInvoices = customer.invoices.filter((inv) => inv.status !== "ANNULEE");
-  const totalAchete = activeInvoices.reduce((sum, inv) => sum + Number(inv.total), 0);
-  const solde = activeInvoices.reduce((sum, inv) => sum + Number(inv.remainingAmount), 0);
+  // Invoices can be in different currencies — convert each to MAD via its
+  // own snapshotted exchange rate before summing.
+  const totalAchete = activeInvoices.reduce(
+    (sum, inv) => sum + Number(inv.total) * Number(inv.exchangeRate),
+    0
+  );
+  const solde = activeInvoices.reduce(
+    (sum, inv) => sum + Number(inv.remainingAmount) * Number(inv.exchangeRate),
+    0
+  );
 
   const boundUpdateCustomer = updateCustomer.bind(null, id);
 
@@ -94,7 +102,7 @@ export default async function ClientDetailPage({
                     </a>
                   </TD>
                   <TD>{formatDate(inv.date)}</TD>
-                  <TD className="tabular-nums">{formatInvoiceAmount(inv.total)}</TD>
+                  <TD className="tabular-nums">{formatInvoiceAmount(inv.total, inv.currency)}</TD>
                   <TD>
                     <StatusBadge status={inv.status} />
                   </TD>

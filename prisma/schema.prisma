@@ -19,6 +19,13 @@ enum StockMovementType {
   AJUSTEMENT
 }
 
+enum Currency {
+  MAD
+  EUR
+  USD
+  CNY
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -58,7 +65,8 @@ model Product {
   name         String
   imageUrl     String?
   quantity     Int      @default(0)
-  rmb          Decimal  @db.Decimal(10, 2)
+  rmb          Decimal  @db.Decimal(10, 2) @default(0)
+  rmbCurrency  Currency @default(MAD)
   sellingPrice Decimal? @db.Decimal(10, 2)
   minimumStock Int      @default(0)
   location     String?
@@ -122,6 +130,8 @@ model Invoice {
   id              String        @id @default(cuid())
   number          String        @unique
   date            DateTime      @default(now())
+  currency        Currency      @default(MAD)
+  exchangeRate    Decimal       @db.Decimal(10, 4) @default(1)
   subtotal        Decimal       @db.Decimal(10, 2)
   vatRate         Decimal       @db.Decimal(5, 2)
   vatAmount       Decimal       @db.Decimal(10, 2)
@@ -189,6 +199,11 @@ model Settings {
   defaultVatRate       Decimal  @db.Decimal(5, 2) @default(20.00)
   invoicePrefix        String   @default("FAC")
   invoiceNumberPadding Int      @default(4)
+  // Taux de change vers le MAD (ex: 1 EUR = 10.80 MAD) — utilisés pour
+  // convertir les produits/factures en devise étrangère lors des totaux.
+  eurToMad             Decimal  @db.Decimal(10, 4) @default(10.80)
+  usdToMad             Decimal  @db.Decimal(10, 4) @default(10.00)
+  cnyToMad             Decimal  @db.Decimal(10, 4) @default(1.40)
   updatedAt            DateTime @updatedAt
 
   @@map("settings")

@@ -41,7 +41,7 @@ export default async function ModifierProduitPage({
     <div className="space-y-8">
       <PageHeader
         title={product.name}
-        description={`Coût unitaire (RMB) : ${formatCurrency(product.rmb)}`}
+        description={`Coût unitaire (RMB) : ${formatCurrency(product.rmb, product.rmbCurrency)}`}
         actions={
           <Button href="/stock" variant="secondary" icon={<ArrowLeft size={16} />}>
             Retour au stock
@@ -57,6 +57,7 @@ export default async function ModifierProduitPage({
           name: product.name,
           quantity: product.quantity,
           rmb: Number(product.rmb),
+          rmbCurrency: product.rmbCurrency,
           sellingPrice: product.sellingPrice ? Number(product.sellingPrice) : null,
           minimumStock: product.minimumStock,
           location: product.location ?? "",

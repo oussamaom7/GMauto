@@ -22,6 +22,9 @@ export default async function ParametresPage() {
           defaultVatRate: Number(settings.defaultVatRate),
           invoicePrefix: settings.invoicePrefix,
           invoiceNumberPadding: settings.invoiceNumberPadding,
+          eurToMad: Number(settings.eurToMad),
+          usdToMad: Number(settings.usdToMad),
+          cnyToMad: Number(settings.cnyToMad),
           companyLogoUrl: settings.companyLogoUrl,
         }}
       />

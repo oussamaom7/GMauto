@@ -43,12 +43,14 @@ export default async function ClientsPage() {
           </THead>
           <tbody>
             {customers.map((c) => {
+              // Invoices can be in different currencies — convert each to MAD
+              // via its own snapshotted exchange rate before summing.
               const totalAchete = c.invoices.reduce(
-                (sum, inv) => sum + Number(inv.total),
+                (sum, inv) => sum + Number(inv.total) * Number(inv.exchangeRate),
                 0
               );
               const solde = c.invoices.reduce(
-                (sum, inv) => sum + Number(inv.remainingAmount),
+                (sum, inv) => sum + Number(inv.remainingAmount) * Number(inv.exchangeRate),
                 0
               );
               return (

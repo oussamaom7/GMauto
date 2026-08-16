@@ -136,9 +136,9 @@ export async function generateInvoicePdf(
       const rowHeight = 22;
       doc.text(item.description, cols.desc.x + 8, y + 6, { width: cols.desc.width - 12 });
       doc.text(String(item.quantity), cols.qty.x, y + 6, { width: cols.qty.width, align: "right" });
-      doc.text(formatInvoiceAmount(item.unitPrice), cols.pu.x, y + 6, { width: cols.pu.width - 8, align: "right" });
+      doc.text(formatInvoiceAmount(item.unitPrice, invoice.currency), cols.pu.x, y + 6, { width: cols.pu.width - 8, align: "right" });
       doc.text(`${vatRate}%`, cols.tva.x, y + 6, { width: cols.tva.width, align: "right" });
-      doc.text(formatInvoiceAmount(item.total), cols.montant.x, y + 6, { width: cols.montant.width - 8, align: "right" });
+      doc.text(formatInvoiceAmount(item.total, invoice.currency), cols.montant.x, y + 6, { width: cols.montant.width - 8, align: "right" });
       y += rowHeight;
       doc.moveTo(MARGIN, y).lineTo(MARGIN + contentWidth, y).strokeColor(BORDER_COLOR).stroke();
     }
@@ -161,13 +161,13 @@ export async function generateInvoicePdf(
       y += bold ? 20 : 16;
     }
 
-    totalLine("SOUS-TOTAL", formatInvoiceAmount(invoice.subtotal));
-    totalLine(`TVA (${vatRate}%)`, formatInvoiceAmount(invoice.vatAmount));
+    totalLine("SOUS-TOTAL", formatInvoiceAmount(invoice.subtotal, invoice.currency));
+    totalLine(`TVA (${vatRate}%)`, formatInvoiceAmount(invoice.vatAmount, invoice.currency));
     doc.moveTo(totalsX, y).lineTo(totalsX + totalsWidth, y).strokeColor(BORDER_COLOR).stroke();
     y += 6;
-    totalLine("TOTAL", formatInvoiceAmount(invoice.total), { bold: true });
-    totalLine("PAYÉ", formatInvoiceAmount(invoice.paidAmount));
-    totalLine("SOLDE À PAYER", formatInvoiceAmount(invoice.remainingAmount), {
+    totalLine("TOTAL", formatInvoiceAmount(invoice.total, invoice.currency), { bold: true });
+    totalLine("PAYÉ", formatInvoiceAmount(invoice.paidAmount, invoice.currency));
+    totalLine("SOLDE À PAYER", formatInvoiceAmount(invoice.remainingAmount, invoice.currency), {
       bold: true,
       color: Number(invoice.remainingAmount) > 0 ? "#b91c1c" : "#15803d",
     });

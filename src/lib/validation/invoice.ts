@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CURRENCIES } from "@/lib/currency";
 
 export const invoiceItemSchema = z.object({
   productId: z.string().nullable(),
@@ -14,6 +15,7 @@ export const createInvoiceSchema = z
     newCustomerPhone: z.string().trim().optional(),
     newCustomerEmail: z.string().trim().optional(),
     date: z.string().min(1, "Date requise"),
+    currency: z.enum(CURRENCIES).default("MAD"),
     paidAmount: z.coerce.number().min(0).default(0),
     applyVat: z.preprocess((v) => v === "on" || v === true, z.boolean()).default(true),
     items: z.array(invoiceItemSchema).min(1, "Ajoutez au moins une ligne"),

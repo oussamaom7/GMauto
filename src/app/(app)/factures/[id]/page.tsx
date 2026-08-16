@@ -87,8 +87,8 @@ export default async function FactureDetailPage({
                 )}
               </TD>
               <TD className="tabular-nums">{item.quantity}</TD>
-              <TD className="tabular-nums">{formatInvoiceAmount(item.unitPrice)}</TD>
-              <TD className="tabular-nums font-medium">{formatInvoiceAmount(item.total)}</TD>
+              <TD className="tabular-nums">{formatInvoiceAmount(item.unitPrice, invoice.currency)}</TD>
+              <TD className="tabular-nums font-medium">{formatInvoiceAmount(item.total, invoice.currency)}</TD>
             </TR>
           ))}
         </tbody>
@@ -98,26 +98,26 @@ export default async function FactureDetailPage({
         <Card className="w-full max-w-xs space-y-2.5">
           <div className="flex justify-between text-sm">
             <span className="text-zinc-500">Sous-total</span>
-            <span className="tabular-nums">{formatInvoiceAmount(invoice.subtotal)}</span>
+            <span className="tabular-nums">{formatInvoiceAmount(invoice.subtotal, invoice.currency)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-zinc-500">TVA ({Number(invoice.vatRate)}%)</span>
-            <span className="tabular-nums">{formatInvoiceAmount(invoice.vatAmount)}</span>
+            <span className="tabular-nums">{formatInvoiceAmount(invoice.vatAmount, invoice.currency)}</span>
           </div>
           <div className="flex justify-between border-t border-zinc-200 pt-2.5 text-base font-semibold dark:border-zinc-800">
             <span>Total</span>
-            <span className="tabular-nums">{formatInvoiceAmount(invoice.total)}</span>
+            <span className="tabular-nums">{formatInvoiceAmount(invoice.total, invoice.currency)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-zinc-500">Payé</span>
-            <span className="tabular-nums">{formatInvoiceAmount(invoice.paidAmount)}</span>
+            <span className="tabular-nums">{formatInvoiceAmount(invoice.paidAmount, invoice.currency)}</span>
           </div>
           <div className="flex justify-between text-base font-semibold">
             <span>Solde à payer</span>
             <span
               className={`tabular-nums ${Number(invoice.remainingAmount) > 0 ? "text-red-600" : "text-emerald-600"}`}
             >
-              {formatInvoiceAmount(invoice.remainingAmount)}
+              {formatInvoiceAmount(invoice.remainingAmount, invoice.currency)}
             </span>
           </div>
         </Card>
@@ -140,7 +140,7 @@ export default async function FactureDetailPage({
           <ul className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
             {invoice.payments.map((p) => (
               <li key={p.id}>
-                {formatDate(p.date)} — {formatInvoiceAmount(p.amount)}
+                {formatDate(p.date)} — {formatInvoiceAmount(p.amount, invoice.currency)}
                 {p.method ? ` (${p.method})` : ""}
               </li>
             ))}

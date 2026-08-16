@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { formatInvoiceAmount } from "@/lib/format";
+import { CURRENCIES, fromMad, toMad, type CurrencyCode } from "@/lib/currency";
 import type { ActionState } from "@/actions/invoices";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Label } from "@/components/ui/FormControls";
@@ -14,6 +15,7 @@ type ProductOption = {
   name: string;
   sellingPrice: number | null;
   rmb: number;
+  rmbCurrency: CurrencyCode;
   quantity: number;
 };
 
@@ -27,6 +29,8 @@ type LineItem = {
   unitPrice: number;
 };
 
+type ExchangeRates = { eurToMad: number; usdToMad: number; cnyToMad: number };
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -36,11 +40,13 @@ export function InvoiceForm({
   customers,
   products,
   vatRate,
+  rates,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   customers: CustomerOption[];
   products: ProductOption[];
   vatRate: number;
+  rates: ExchangeRates;
 }) {
   const [state, formAction, isPending] = useActionState(action, undefined);
   const nextKey = useRef(1);
@@ -52,6 +58,7 @@ export function InvoiceForm({
     customers.length > 0 ? "existing" : "new"
   );
   const [applyVat, setApplyVat] = useState(true);
+  const [currency, setCurrency] = useState<CurrencyCode>("MAD");
 
   function addRow() {
     setItems((rows) => [
@@ -81,10 +88,13 @@ export function InvoiceForm({
     }
     const product = products.find((p) => p.id === productId);
     if (!product) return;
+    // sellingPrice is stored in MAD; rmb is in its own currency. Convert
+    // whichever we use as the prefill into the invoice's selected currency.
+    const priceInMad = product.sellingPrice ?? toMad(product.rmb, product.rmbCurrency, rates);
     updateRow(key, {
       productId: product.id,
       description: product.name,
-      unitPrice: product.sellingPrice ?? product.rmb,
+      unitPrice: Math.round(fromMad(priceInMad, currency, rates) * 100) / 100,
     });
   }
 
@@ -165,6 +175,24 @@ export function InvoiceForm({
             </Field>
           </div>
         )}
+
+        <div className="mt-4">
+          <Field label="Devise de la facture" htmlFor="currency">
+            <Select
+              id="currency"
+              name="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+              className="max-w-[160px]"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
       </Card>
 
       <Card>
@@ -223,7 +251,7 @@ export function InvoiceForm({
                   />
 
                   <div className="col-span-1 flex items-center px-1 text-sm font-medium tabular-nums text-zinc-700 dark:text-zinc-300 sm:col-span-1 sm:justify-end">
-                    {formatInvoiceAmount(item.quantity * item.unitPrice)}
+                    {formatInvoiceAmount(item.quantity * item.unitPrice, currency)}
                   </div>
 
                   <button
@@ -261,7 +289,7 @@ export function InvoiceForm({
         <Card className="w-full max-w-xs space-y-2.5">
           <div className="flex justify-between text-sm">
             <span className="text-zinc-500">Sous-total</span>
-            <span className="tabular-nums">{formatInvoiceAmount(subtotal)}</span>
+            <span className="tabular-nums">{formatInvoiceAmount(subtotal, currency)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-1.5 text-zinc-500">
@@ -274,11 +302,11 @@ export function InvoiceForm({
               />
               TVA ({vatRate}%)
             </label>
-            <span className="tabular-nums">{formatInvoiceAmount(vatAmount)}</span>
+            <span className="tabular-nums">{formatInvoiceAmount(vatAmount, currency)}</span>
           </div>
           <div className="flex justify-between border-t border-zinc-200 pt-2.5 text-base font-semibold dark:border-zinc-800">
             <span>Total</span>
-            <span className="tabular-nums">{formatInvoiceAmount(total)}</span>
+            <span className="tabular-nums">{formatInvoiceAmount(total, currency)}</span>
           </div>
           <div className="flex items-center justify-between pt-1">
             <Label htmlFor="paidAmount" className="mb-0 text-zinc-500">
@@ -297,7 +325,7 @@ export function InvoiceForm({
           </div>
           <div className="flex justify-between text-base font-semibold">
             <span>Solde à payer</span>
-            <span className="tabular-nums">{formatInvoiceAmount(remaining)}</span>
+            <span className="tabular-nums">{formatInvoiceAmount(remaining, currency)}</span>
           </div>
         </Card>
       </div>

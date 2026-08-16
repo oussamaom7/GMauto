@@ -55,8 +55,8 @@ export default async function FacturesPage() {
                 </TD>
                 <TD>{inv.customer.name}</TD>
                 <TD>{formatDate(inv.date)}</TD>
-                <TD className="tabular-nums font-medium">{formatInvoiceAmount(inv.total)}</TD>
-                <TD className="tabular-nums">{formatInvoiceAmount(inv.remainingAmount)}</TD>
+                <TD className="tabular-nums font-medium">{formatInvoiceAmount(inv.total, inv.currency)}</TD>
+                <TD className="tabular-nums">{formatInvoiceAmount(inv.remainingAmount, inv.currency)}</TD>
                 <TD>
                   <StatusBadge status={inv.status} />
                 </TD>

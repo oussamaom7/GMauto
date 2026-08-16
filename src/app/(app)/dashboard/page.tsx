@@ -9,11 +9,13 @@ import { Table, THead, TH, TR, TD } from "@/components/ui/Table";
 import { StatusBadge } from "@/components/invoices/StatusBadge";
 import { StockAlerts } from "@/components/dashboard/StockAlerts";
 import { CategoryDonutChart } from "@/components/dashboard/CategoryDonutChart";
+import { getSettings } from "@/lib/settings";
+import { toMad } from "@/lib/currency";
 
 export default async function DashboardPage() {
   const session = await auth();
 
-  const [products, recentInvoices, recentMovements] = await Promise.all([
+  const [products, recentInvoices, recentMovements, settings] = await Promise.all([
     prisma.product.findMany({
       where: { isActive: true },
       include: { category: true, brand: true },
@@ -28,10 +30,14 @@ export default async function DashboardPage() {
       take: 5,
       include: { product: true },
     }),
+    getSettings(),
   ]);
 
   const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
-  const totalValue = products.reduce((sum, p) => sum + p.quantity * Number(p.rmb), 0);
+  const totalValue = products.reduce(
+    (sum, p) => sum + toMad(p.quantity * Number(p.rmb), p.rmbCurrency, settings),
+    0
+  );
   const lowStock = products.filter((p) => p.quantity > 0 && p.quantity <= p.minimumStock);
   const outOfStock = products.filter((p) => p.quantity <= 0);
   const alerts = [...outOfStock, ...lowStock].slice(0, 6);
@@ -99,7 +105,7 @@ export default async function DashboardPage() {
                       </TD>
                       <TD>{inv.customer.name}</TD>
                       <TD>{formatDate(inv.date)}</TD>
-                      <TD className="tabular-nums">{formatInvoiceAmount(inv.total)}</TD>
+                      <TD className="tabular-nums">{formatInvoiceAmount(inv.total, inv.currency)}</TD>
                       <TD>
                         <StatusBadge status={inv.status} />
                       </TD>

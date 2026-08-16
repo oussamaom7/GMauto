@@ -4,16 +4,18 @@ import { useActionState, useMemo, useState } from "react";
 import { ImagePlus } from "lucide-react";
 import type { ActionState } from "@/actions/products";
 import { Card } from "@/components/ui/Card";
-import { Field, Input } from "@/components/ui/FormControls";
+import { Field, Input, Select } from "@/components/ui/FormControls";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
+import { CURRENCIES, type CurrencyCode } from "@/lib/currency";
 
 type ProductFormValues = {
   reference: string;
   name: string;
   quantity: number;
   rmb: number;
+  rmbCurrency: CurrencyCode;
   sellingPrice: number | null;
   minimumStock: number;
   location: string;
@@ -38,6 +40,9 @@ export function ProductForm({
   const [state, formAction, isPending] = useActionState(action, undefined);
   const [quantity, setQuantity] = useState(initialValues?.quantity ?? 0);
   const [rmb, setRmb] = useState(initialValues?.rmb ?? 0);
+  const [rmbCurrency, setRmbCurrency] = useState<CurrencyCode>(
+    initialValues?.rmbCurrency ?? "MAD"
+  );
 
   const total = useMemo(() => quantity * rmb, [quantity, rmb]);
 
@@ -97,12 +102,11 @@ export function ProductForm({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {mode === "create" ? (
-            <Field label="Quantité" htmlFor="quantity">
+            <Field label="Quantité" htmlFor="quantity" hint="Laissez à 0 si inconnue pour l'instant.">
               <Input
                 id="quantity"
                 type="number"
                 name="quantity"
-                required
                 defaultValue={initialValues?.quantity ?? 0}
                 onChange={(e) => setQuantity(Number(e.target.value) || 0)}
               />
@@ -113,25 +117,39 @@ export function ProductForm({
             </Field>
           )}
 
-          <Field label="RMB" htmlFor="rmb">
-            <Input
-              id="rmb"
-              type="number"
-              step="0.01"
-              name="rmb"
-              required
-              defaultValue={initialValues?.rmb ?? 0}
-              onChange={(e) => setRmb(Number(e.target.value) || 0)}
-            />
+          <Field label="RMB" htmlFor="rmb" hint="Coût d'achat, dans la devise du fournisseur.">
+            <div className="flex gap-2">
+              <Input
+                id="rmb"
+                type="number"
+                step="0.01"
+                name="rmb"
+                defaultValue={initialValues?.rmb ?? 0}
+                onChange={(e) => setRmb(Number(e.target.value) || 0)}
+                className="flex-1"
+              />
+              <Select
+                name="rmbCurrency"
+                value={rmbCurrency}
+                onChange={(e) => setRmbCurrency(e.target.value as CurrencyCode)}
+                className="w-24 shrink-0"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </Field>
 
           <Field label="Total">
-            <Input type="text" readOnly value={formatCurrency(total)} className="font-medium" />
+            <Input type="text" readOnly value={formatCurrency(total, rmbCurrency)} className="font-medium" />
           </Field>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Prix de vente" htmlFor="sellingPrice">
+          <Field label="Prix de vente" htmlFor="sellingPrice" hint="En MAD — utilisé par défaut sur les factures.">
             <Input
               id="sellingPrice"
               type="number"

@@ -23,6 +23,9 @@ export async function updateSettings(
     defaultVatRate: formData.get("defaultVatRate"),
     invoicePrefix: formData.get("invoicePrefix"),
     invoiceNumberPadding: formData.get("invoiceNumberPadding"),
+    eurToMad: formData.get("eurToMad"),
+    usdToMad: formData.get("usdToMad"),
+    cnyToMad: formData.get("cnyToMad"),
   });
 
   if (!parsed.success) {
@@ -35,7 +38,14 @@ export async function updateSettings(
     try {
       companyLogoUrl = await saveCompanyLogo(logo);
     } catch (err) {
-      return { error: err instanceof UploadValidationError ? err.message : "Échec de l'upload." };
+      if (err instanceof UploadValidationError) {
+        return { error: err.message };
+      }
+      console.error("Logo upload failed:", err);
+      return {
+        error:
+          "Échec de l'upload. Si le problème persiste en production, vérifiez qu'un Vercel Blob store est bien connecté au projet.",
+      };
     }
   }
 
@@ -50,6 +60,9 @@ export async function updateSettings(
       defaultVatRate: parsed.data.defaultVatRate,
       invoicePrefix: parsed.data.invoicePrefix,
       invoiceNumberPadding: parsed.data.invoiceNumberPadding,
+      eurToMad: parsed.data.eurToMad,
+      usdToMad: parsed.data.usdToMad,
+      cnyToMad: parsed.data.cnyToMad,
       ...(companyLogoUrl ? { companyLogoUrl } : {}),
     },
     create: {
@@ -62,6 +75,9 @@ export async function updateSettings(
       defaultVatRate: parsed.data.defaultVatRate,
       invoicePrefix: parsed.data.invoicePrefix,
       invoiceNumberPadding: parsed.data.invoiceNumberPadding,
+      eurToMad: parsed.data.eurToMad,
+      usdToMad: parsed.data.usdToMad,
+      cnyToMad: parsed.data.cnyToMad,
       companyLogoUrl,
     },
   });

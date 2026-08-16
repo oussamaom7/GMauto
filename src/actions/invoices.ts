@@ -9,6 +9,7 @@ import { createInvoiceSchema, recordPaymentSchema } from "@/lib/validation/invoi
 import { getNextInvoiceNumber } from "@/lib/invoiceNumbering";
 import { getSettings } from "@/lib/settings";
 import { recordStockMovement } from "@/lib/stock";
+import { toMad } from "@/lib/currency";
 
 export type ActionState = { error: string } | undefined;
 
@@ -37,6 +38,7 @@ export async function createInvoice(
     newCustomerPhone: formData.get("newCustomerPhone") || undefined,
     newCustomerEmail: formData.get("newCustomerEmail") || undefined,
     date: formData.get("date"),
+    currency: formData.get("currency") || undefined,
     paidAmount: formData.get("paidAmount") || 0,
     applyVat: formData.get("applyVat"),
     items: itemsRaw,
@@ -47,6 +49,7 @@ export async function createInvoice(
   }
 
   const settings = await getSettings();
+  const exchangeRate = toMad(1, parsed.data.currency, settings);
   const vatRate = parsed.data.applyVat ? Number(settings.defaultVatRate) : 0;
   const subtotal = parsed.data.items.reduce(
     (sum, item) => sum + item.quantity * item.unitPrice,
@@ -81,6 +84,8 @@ export async function createInvoice(
         number,
         customerId,
         date: new Date(parsed.data.date),
+        currency: parsed.data.currency,
+        exchangeRate,
         subtotal,
         vatRate,
         vatAmount,

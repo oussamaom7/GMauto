@@ -23,9 +23,15 @@ export default async function NouvelleFacturePage() {
           name: p.name,
           sellingPrice: p.sellingPrice ? Number(p.sellingPrice) : null,
           rmb: Number(p.rmb),
+          rmbCurrency: p.rmbCurrency,
           quantity: p.quantity,
         }))}
         vatRate={Number(settings.defaultVatRate)}
+        rates={{
+          eurToMad: Number(settings.eurToMad),
+          usdToMad: Number(settings.usdToMad),
+          cnyToMad: Number(settings.cnyToMad),
+        }}
       />
     </div>
   );

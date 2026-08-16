@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Building2 } from "lucide-react";
+import { Building2, Coins } from "lucide-react";
 import { updateSettings } from "@/actions/settings";
 import type { ActionState } from "@/actions/settings";
 import { Card } from "@/components/ui/Card";
@@ -19,6 +19,9 @@ type SettingsValues = {
   defaultVatRate: number;
   invoicePrefix: string;
   invoiceNumberPadding: number;
+  eurToMad: number;
+  usdToMad: number;
+  cnyToMad: number;
   companyLogoUrl: string | null;
 };
 
@@ -116,6 +119,49 @@ export function SettingsForm({ initialValues }: { initialValues: SettingsValues 
               name="invoiceNumberPadding"
               required
               defaultValue={initialValues.invoiceNumberPadding}
+            />
+          </Field>
+        </div>
+      </Card>
+
+      <Card className="space-y-4">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <Coins size={16} />
+          Taux de change (vers MAD)
+        </h2>
+        <p className="text-xs text-zinc-400">
+          Utilisés pour convertir la valeur du stock et les factures en devise étrangère. À ajuster selon le taux actuel.
+        </p>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="1 EUR =" htmlFor="eurToMad" hint="en MAD">
+            <Input
+              id="eurToMad"
+              type="number"
+              step="0.01"
+              name="eurToMad"
+              required
+              defaultValue={initialValues.eurToMad}
+            />
+          </Field>
+          <Field label="1 USD =" htmlFor="usdToMad" hint="en MAD">
+            <Input
+              id="usdToMad"
+              type="number"
+              step="0.01"
+              name="usdToMad"
+              required
+              defaultValue={initialValues.usdToMad}
+            />
+          </Field>
+          <Field label="1 CNY =" htmlFor="cnyToMad" hint="en MAD">
+            <Input
+              id="cnyToMad"
+              type="number"
+              step="0.01"
+              name="cnyToMad"
+              required
+              defaultValue={initialValues.cnyToMad}
             />
           </Field>
         </div>

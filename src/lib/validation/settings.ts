@@ -9,4 +9,7 @@ export const settingsSchema = z.object({
   defaultVatRate: z.coerce.number().min(0).max(100),
   invoicePrefix: z.string().trim().min(1, "Préfixe requis"),
   invoiceNumberPadding: z.coerce.number().int().min(1).max(10),
+  eurToMad: z.coerce.number().positive("Taux invalide"),
+  usdToMad: z.coerce.number().positive("Taux invalide"),
+  cnyToMad: z.coerce.number().positive("Taux invalide"),
 });

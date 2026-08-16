@@ -51,8 +51,9 @@ export async function createProduct(
   const parsed = productSchema.safeParse({
     reference: formData.get("reference"),
     name: formData.get("name"),
-    quantity: formData.get("quantity"),
-    rmb: formData.get("rmb"),
+    quantity: formData.get("quantity") || 0,
+    rmb: formData.get("rmb") || 0,
+    rmbCurrency: formData.get("rmbCurrency") || undefined,
     sellingPrice: formData.get("sellingPrice") || undefined,
     minimumStock: formData.get("minimumStock") || 0,
     location: formData.get("location") || undefined,
@@ -77,7 +78,14 @@ export async function createProduct(
     try {
       imageUrl = await saveProductPhoto(photo);
     } catch (err) {
-      return { error: err instanceof UploadValidationError ? err.message : "Échec de l'upload." };
+      if (err instanceof UploadValidationError) {
+        return { error: err.message };
+      }
+      console.error("Product photo upload failed:", err);
+      return {
+        error:
+          "Échec de l'upload. Si le problème persiste en production, vérifiez qu'un Vercel Blob store est bien connecté au projet.",
+      };
     }
   }
 
@@ -94,6 +102,7 @@ export async function createProduct(
         name: parsed.data.name,
         quantity: 0,
         rmb: parsed.data.rmb,
+        rmbCurrency: parsed.data.rmbCurrency,
         sellingPrice: parsed.data.sellingPrice,
         minimumStock: parsed.data.minimumStock,
         location: parsed.data.location,
@@ -128,7 +137,8 @@ export async function updateProduct(
   const parsed = productUpdateSchema.safeParse({
     reference: formData.get("reference"),
     name: formData.get("name"),
-    rmb: formData.get("rmb"),
+    rmb: formData.get("rmb") || 0,
+    rmbCurrency: formData.get("rmbCurrency") || undefined,
     sellingPrice: formData.get("sellingPrice") || undefined,
     minimumStock: formData.get("minimumStock") || 0,
     location: formData.get("location") || undefined,
@@ -153,7 +163,14 @@ export async function updateProduct(
     try {
       imageUrl = await saveProductPhoto(photo);
     } catch (err) {
-      return { error: err instanceof UploadValidationError ? err.message : "Échec de l'upload." };
+      if (err instanceof UploadValidationError) {
+        return { error: err.message };
+      }
+      console.error("Product photo upload failed:", err);
+      return {
+        error:
+          "Échec de l'upload. Si le problème persiste en production, vérifiez qu'un Vercel Blob store est bien connecté au projet.",
+      };
     }
   }
 
@@ -170,6 +187,7 @@ export async function updateProduct(
         reference: parsed.data.reference,
         name: parsed.data.name,
         rmb: parsed.data.rmb,
+        rmbCurrency: parsed.data.rmbCurrency,
         sellingPrice: parsed.data.sellingPrice,
         minimumStock: parsed.data.minimumStock,
         location: parsed.data.location,
@@ -192,6 +210,18 @@ export async function deactivateProduct(id: string) {
     data: { isActive: false },
   });
   revalidatePath("/stock");
+  revalidatePath("/stock/desactivees");
+}
+
+export async function reactivateProduct(id: string) {
+  await requireSession();
+
+  await prisma.product.update({
+    where: { id },
+    data: { isActive: true },
+  });
+  revalidatePath("/stock");
+  revalidatePath("/stock/desactivees");
 }
 
 export async function adjustStock(
