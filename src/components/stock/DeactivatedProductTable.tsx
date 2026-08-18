@@ -5,6 +5,7 @@ import { formatCurrency } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
 import type { CurrencyCode } from "@/lib/currency";
 import { reactivateProduct } from "@/actions/products";
+import { DeleteProductButton } from "@/components/stock/DeleteProductButton";
 
 type ProductRow = {
   id: string;
@@ -68,7 +69,7 @@ export function DeactivatedProductTable({ products }: { products: ProductRow[] }
               {formatCurrency(product.rmb, product.rmbCurrency)}
             </TD>
             <TD>
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-4">
                 <form action={reactivateProduct.bind(null, product.id)}>
                   <button
                     type="submit"
@@ -78,6 +79,7 @@ export function DeactivatedProductTable({ products }: { products: ProductRow[] }
                     Réactiver
                   </button>
                 </form>
+                <DeleteProductButton id={product.id} name={product.name} />
               </div>
             </TD>
           </TR>

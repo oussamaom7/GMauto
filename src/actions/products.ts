@@ -224,6 +224,23 @@ export async function reactivateProduct(id: string) {
   revalidatePath("/stock/desactivees");
 }
 
+export async function deleteProduct(id: string) {
+  await requireSession();
+
+  // Stock movements referencing this product block the delete (FK is
+  // ON DELETE RESTRICT, unlike invoice items which are ON DELETE SET NULL
+  // to preserve the invoice's already-frozen description/price) — clear
+  // that history first since it has no meaning once the product is gone.
+  await prisma.$transaction([
+    prisma.stockMovement.deleteMany({ where: { productId: id } }),
+    prisma.product.delete({ where: { id } }),
+  ]);
+
+  revalidatePath("/stock");
+  revalidatePath("/stock/desactivees");
+  revalidatePath("/stock/mouvements");
+}
+
 export async function adjustStock(
   _prevState: ActionState,
   formData: FormData
