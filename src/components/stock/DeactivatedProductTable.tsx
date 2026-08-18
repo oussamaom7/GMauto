@@ -35,7 +35,7 @@ export function DeactivatedProductTable({ products }: { products: ProductRow[] }
         <TH className="hidden sm:table-cell">Photo</TH>
         <TH>Référence / Pièce</TH>
         <TH>Quantité</TH>
-        <TH className="hidden sm:table-cell">RMB</TH>
+        <TH className="hidden sm:table-cell">Prix unitaire</TH>
         <TH />
       </THead>
       <tbody>

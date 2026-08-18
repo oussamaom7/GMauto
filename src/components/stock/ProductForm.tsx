@@ -117,7 +117,7 @@ export function ProductForm({
             </Field>
           )}
 
-          <Field label="RMB" htmlFor="rmb" hint="Coût d'achat, dans la devise du fournisseur.">
+          <Field label="Prix unitaire" htmlFor="rmb" hint="Coût d'achat, dans la devise du fournisseur.">
             <div className="flex gap-2">
               <Input
                 id="rmb"

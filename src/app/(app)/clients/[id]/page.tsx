@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft, Wallet, Receipt } from "lucide-react";
+import { ArrowLeft, Wallet, Receipt, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { updateCustomer } from "@/actions/customers";
 import { CustomerForm } from "@/components/clients/CustomerForm";
@@ -89,22 +89,21 @@ export default async function ClientDetailPage({
               <TH>Date</TH>
               <TH>Total</TH>
               <TH>Statut</TH>
+              <TH />
             </THead>
             <tbody>
               {customer.invoices.map((inv) => (
                 <TR key={inv.id}>
-                  <TD>
-                    <a
-                      href={`/factures/${inv.id}`}
-                      className="font-medium text-zinc-900 hover:text-blue-600 hover:underline dark:text-zinc-50"
-                    >
-                      {inv.number}
-                    </a>
-                  </TD>
+                  <TD className="font-medium text-zinc-900 dark:text-zinc-50">{inv.number}</TD>
                   <TD>{formatDate(inv.date)}</TD>
                   <TD className="tabular-nums">{formatInvoiceAmount(inv.total, inv.currency)}</TD>
                   <TD>
                     <StatusBadge status={inv.status} />
+                  </TD>
+                  <TD>
+                    <Button href={`/factures/${inv.id}`} variant="secondary" size="sm" icon={<Eye size={14} />}>
+                      Voir
+                    </Button>
                   </TD>
                 </TR>
               ))}

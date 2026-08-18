@@ -1,4 +1,4 @@
-import { Plus, Receipt } from "lucide-react";
+import { Plus, Receipt, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/invoices/StatusBadge";
 import { formatDate, formatInvoiceAmount } from "@/lib/format";
@@ -41,24 +41,23 @@ export default async function FacturesPage() {
             <TH>Total</TH>
             <TH>Solde</TH>
             <TH>Statut</TH>
+            <TH />
           </THead>
           <tbody>
             {invoices.map((inv) => (
               <TR key={inv.id}>
-                <TD>
-                  <a
-                    href={`/factures/${inv.id}`}
-                    className="font-medium text-zinc-900 hover:text-blue-600 hover:underline dark:text-zinc-50"
-                  >
-                    {inv.number}
-                  </a>
-                </TD>
+                <TD className="font-medium text-zinc-900 dark:text-zinc-50">{inv.number}</TD>
                 <TD>{inv.customer.name}</TD>
                 <TD>{formatDate(inv.date)}</TD>
                 <TD className="tabular-nums font-medium">{formatInvoiceAmount(inv.total, inv.currency)}</TD>
                 <TD className="tabular-nums">{formatInvoiceAmount(inv.remainingAmount, inv.currency)}</TD>
                 <TD>
                   <StatusBadge status={inv.status} />
+                </TD>
+                <TD>
+                  <Button href={`/factures/${inv.id}`} variant="secondary" size="sm" icon={<Eye size={14} />}>
+                    Voir
+                  </Button>
                 </TD>
               </TR>
             ))}

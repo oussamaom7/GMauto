@@ -45,7 +45,7 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
         <TH className="hidden sm:table-cell">Photo</TH>
         <TH>Référence / Pièce</TH>
         <TH>Quantité</TH>
-        <TH className="hidden sm:table-cell">RMB</TH>
+        <TH className="hidden sm:table-cell">Prix unitaire</TH>
         <TH>Total</TH>
         <TH>Stock</TH>
         <TH />

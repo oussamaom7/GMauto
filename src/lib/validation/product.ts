@@ -5,7 +5,7 @@ export const productSchema = z.object({
   reference: z.string().trim().min(1, "Référence requise"),
   name: z.string().trim().min(1, "Désignation requise"),
   quantity: z.coerce.number().int("La quantité doit être un nombre entier").default(0),
-  rmb: z.coerce.number().min(0, "RMB doit être positif").default(0),
+  rmb: z.coerce.number().min(0, "Le prix unitaire doit être positif").default(0),
   rmbCurrency: z.enum(CURRENCIES).default("MAD"),
   sellingPrice: z.coerce.number().min(0).optional(),
   minimumStock: z.coerce.number().int().min(0).default(0),

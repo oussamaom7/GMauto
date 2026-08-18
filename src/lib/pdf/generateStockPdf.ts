@@ -106,7 +106,7 @@ export async function generateStockPdf(
       doc.text("PHOTO", cols.photo.x + 4, y + 7, { width: cols.photo.width });
       doc.text("RÉFÉRENCE / DÉSIGNATION", cols.ref.x, y + 7, { width: cols.ref.width });
       doc.text("QUANTITÉ", cols.qty.x, y + 7, { width: cols.qty.width, align: "right" });
-      doc.text("RMB", cols.rmb.x, y + 7, { width: cols.rmb.width - 8, align: "right" });
+      doc.text("PRIX UNITAIRE", cols.rmb.x, y + 7, { width: cols.rmb.width - 8, align: "right" });
       doc.text("TOTAL", cols.total.x, y + 7, { width: cols.total.width - 8, align: "right" });
       y += HEADER_HEIGHT;
     }

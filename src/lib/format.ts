@@ -18,7 +18,7 @@ const CURRENCY_SUFFIX: Record<CurrencyCode, string> = {
   CNY: "CNY",
 };
 
-/** Used on Stock/Product screens (RMB, stock value) — "1 234,00 DH" by default. */
+/** Used on Stock/Product screens (prix unitaire, valeur du stock) — "1 234,00 DH" by default. */
 export function formatCurrency(value: unknown, currency: CurrencyCode = "MAD"): string {
   const n = Number(value ?? 0);
   return `${currencyFormatter.format(n)} ${CURRENCY_SUFFIX[currency]}`;
