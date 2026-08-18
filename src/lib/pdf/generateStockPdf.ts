@@ -1,9 +1,8 @@
 import PDFDocument from "pdfkit";
-import { readFile } from "fs/promises";
-import path from "path";
 import type { Brand, Category, Product, Settings } from "@prisma/client";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { toMad, type CurrencyCode } from "@/lib/currency";
+import { loadImageBuffer } from "@/lib/pdf/loadImage";
 
 type ProductWithRelations = Product & {
   category: Category | null;
@@ -27,19 +26,6 @@ const HEADER_HEIGHT = 22;
  */
 function pdfCurrency(value: unknown, currency: CurrencyCode): string {
   return formatCurrency(value, currency).replace(/[  ]/g, " ");
-}
-
-async function loadImageBuffer(imageUrl: string | null): Promise<Buffer | null> {
-  if (!imageUrl) return null;
-  try {
-    if (imageUrl.startsWith("http")) {
-      const res = await fetch(imageUrl);
-      return res.ok ? Buffer.from(await res.arrayBuffer()) : null;
-    }
-    return await readFile(path.join(process.cwd(), "storage", "uploads", imageUrl));
-  } catch {
-    return null;
-  }
 }
 
 export async function generateStockPdf(

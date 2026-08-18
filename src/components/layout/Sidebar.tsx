@@ -12,6 +12,7 @@ import {
   LogOut,
   Car,
   History,
+  ClipboardList,
   ChevronDown,
   X,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/stock", label: "Stock", icon: Package },
   { href: "/stock/mouvements", label: "Mouvements", icon: History },
+  { href: "/bons-de-commande", label: "Bons de commande", icon: ClipboardList },
   { href: "/factures", label: "Factures", icon: Receipt },
   { href: "/clients", label: "Clients", icon: Users },
 ];

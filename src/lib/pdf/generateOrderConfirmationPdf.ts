@@ -1,11 +1,11 @@
 import PDFDocument from "pdfkit";
-import type { Customer, Invoice, InvoiceItem, Product, Settings } from "@prisma/client";
+import type { Customer, OrderConfirmation, OrderConfirmationItem, Product, Settings } from "@prisma/client";
 import { formatDate, formatInvoiceAmount } from "@/lib/format";
 import { loadImageBuffer } from "@/lib/pdf/loadImage";
 
-type InvoiceWithRelations = Invoice & {
+type OrderConfirmationWithRelations = OrderConfirmation & {
   customer: Customer;
-  items: (InvoiceItem & { product: Product | null })[];
+  items: (OrderConfirmationItem & { product: Product | null })[];
 };
 
 const MARGIN = 50;
@@ -15,13 +15,13 @@ const MUTED_COLOR = "#6b7280";
 const BORDER_COLOR = "#e5e7eb";
 const PHOTO_SIZE = 24;
 
-export async function generateInvoicePdf(
-  invoice: InvoiceWithRelations,
+export async function generateOrderConfirmationPdf(
+  order: OrderConfirmationWithRelations,
   settings: Settings
 ): Promise<Buffer> {
   const [logoBuffer, photoBuffers] = await Promise.all([
     loadImageBuffer(settings.companyLogoUrl),
-    Promise.all(invoice.items.map((item) => loadImageBuffer(item.product?.imageUrl))),
+    Promise.all(order.items.map((item) => loadImageBuffer(item.product?.imageUrl))),
   ]);
 
   return new Promise((resolve, reject) => {
@@ -32,7 +32,7 @@ export async function generateInvoicePdf(
     doc.on("error", reject);
 
     const contentWidth = doc.page.width - MARGIN * 2;
-    const vatRate = Number(invoice.vatRate);
+    const vatRate = Number(order.vatRate);
 
     // Header
     let nameX = MARGIN;
@@ -47,9 +47,9 @@ export async function generateInvoicePdf(
       .text(settings.companyName, nameX, MARGIN + (logoBuffer ? 9 : 0));
     doc
       .font("Helvetica-Bold")
-      .fontSize(26)
+      .fontSize(22)
       .fillColor(TEXT_COLOR)
-      .text("FACTURE", MARGIN, MARGIN, { width: contentWidth, align: "right" });
+      .text("BON DE COMMANDE", MARGIN, MARGIN, { width: contentWidth, align: "right" });
 
     let y = MARGIN + 50;
     doc.moveTo(MARGIN, y).lineTo(MARGIN + contentWidth, y).strokeColor(BORDER_COLOR).stroke();
@@ -57,19 +57,19 @@ export async function generateInvoicePdf(
 
     // Client block (left) + meta block (right)
     const blockTop = y;
-    doc.font("Helvetica-Bold").fontSize(9).fillColor(MUTED_COLOR).text("FACTURE À", MARGIN, y);
+    doc.font("Helvetica-Bold").fontSize(9).fillColor(MUTED_COLOR).text("COMMANDE DE", MARGIN, y);
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
       .fillColor(TEXT_COLOR)
-      .text(invoice.customer.name, MARGIN, y + 14);
+      .text(order.customer.name, MARGIN, y + 14);
     let clientY = y + 32;
-    if (invoice.customer.phone) {
-      doc.font("Helvetica").fontSize(9).fillColor(MUTED_COLOR).text(invoice.customer.phone, MARGIN, clientY);
+    if (order.customer.phone) {
+      doc.font("Helvetica").fontSize(9).fillColor(MUTED_COLOR).text(order.customer.phone, MARGIN, clientY);
       clientY += 13;
     }
-    if (invoice.customer.email) {
-      doc.font("Helvetica").fontSize(9).fillColor(MUTED_COLOR).text(invoice.customer.email, MARGIN, clientY);
+    if (order.customer.email) {
+      doc.font("Helvetica").fontSize(9).fillColor(MUTED_COLOR).text(order.customer.email, MARGIN, clientY);
       clientY += 13;
     }
 
@@ -80,13 +80,13 @@ export async function generateInvoicePdf(
       .font("Helvetica-Bold")
       .fontSize(10)
       .fillColor(TEXT_COLOR)
-      .text(invoice.number, metaX + 80, blockTop, { width: 120, align: "right" });
+      .text(order.number, metaX + 80, blockTop, { width: 120, align: "right" });
     doc.font("Helvetica").fontSize(9).fillColor(MUTED_COLOR).text("Date", metaX, blockTop + 16, { width: 80 });
     doc
       .font("Helvetica-Bold")
       .fontSize(10)
       .fillColor(TEXT_COLOR)
-      .text(formatDate(invoice.date), metaX + 80, blockTop + 16, { width: 120, align: "right" });
+      .text(formatDate(order.date), metaX + 80, blockTop + 16, { width: 120, align: "right" });
 
     y = Math.max(clientY, blockTop + 40) + 20;
 
@@ -116,7 +116,7 @@ export async function generateInvoicePdf(
     drawTableHeader();
 
     doc.font("Helvetica").fontSize(9.5).fillColor(TEXT_COLOR);
-    invoice.items.forEach((item, i) => {
+    order.items.forEach((item, i) => {
       if (y > doc.page.height - 220) {
         doc.addPage();
         y = MARGIN;
@@ -137,41 +137,36 @@ export async function generateInvoicePdf(
       doc.font("Helvetica").fontSize(9.5).fillColor(TEXT_COLOR);
       doc.text(item.description, cols.desc.x + 8, y + 10, { width: cols.desc.width - 12 });
       doc.text(String(item.quantity), cols.qty.x, y + 10, { width: cols.qty.width, align: "right" });
-      doc.text(formatInvoiceAmount(item.unitPrice, invoice.currency), cols.pu.x, y + 10, { width: cols.pu.width - 8, align: "right" });
+      doc.text(formatInvoiceAmount(item.unitPrice, order.currency), cols.pu.x, y + 10, { width: cols.pu.width - 8, align: "right" });
       doc.text(`${vatRate}%`, cols.tva.x, y + 10, { width: cols.tva.width, align: "right" });
-      doc.text(formatInvoiceAmount(item.total, invoice.currency), cols.montant.x, y + 10, { width: cols.montant.width - 8, align: "right" });
+      doc.text(formatInvoiceAmount(item.total, order.currency), cols.montant.x, y + 10, { width: cols.montant.width - 8, align: "right" });
       y += rowHeight;
       doc.moveTo(MARGIN, y).lineTo(MARGIN + contentWidth, y).strokeColor(BORDER_COLOR).stroke();
     });
 
     y += 20;
-    if (y > doc.page.height - 180) {
+    if (y > doc.page.height - 150) {
       doc.addPage();
       y = MARGIN;
     }
 
-    // Totals block
+    // Totals block — no payment lines, this is a pre-invoice document.
     const totalsWidth = 220;
     const totalsX = MARGIN + contentWidth - totalsWidth;
 
-    function totalLine(label: string, value: string, opts: { bold?: boolean; color?: string } = {}) {
+    function totalLine(label: string, value: string, opts: { bold?: boolean } = {}) {
       const bold = opts.bold ?? false;
-      doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(bold ? 11 : 9.5).fillColor(opts.color ?? TEXT_COLOR);
+      doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(bold ? 11 : 9.5).fillColor(TEXT_COLOR);
       doc.text(label, totalsX, y, { width: totalsWidth * 0.5 });
       doc.text(value, totalsX + totalsWidth * 0.5, y, { width: totalsWidth * 0.5, align: "right" });
       y += bold ? 20 : 16;
     }
 
-    totalLine("SOUS-TOTAL", formatInvoiceAmount(invoice.subtotal, invoice.currency));
-    totalLine(`TVA (${vatRate}%)`, formatInvoiceAmount(invoice.vatAmount, invoice.currency));
+    totalLine("SOUS-TOTAL", formatInvoiceAmount(order.subtotal, order.currency));
+    totalLine(`TVA (${vatRate}%)`, formatInvoiceAmount(order.vatAmount, order.currency));
     doc.moveTo(totalsX, y).lineTo(totalsX + totalsWidth, y).strokeColor(BORDER_COLOR).stroke();
     y += 6;
-    totalLine("TOTAL", formatInvoiceAmount(invoice.total, invoice.currency), { bold: true });
-    totalLine("PAYÉ", formatInvoiceAmount(invoice.paidAmount, invoice.currency));
-    totalLine("SOLDE À PAYER", formatInvoiceAmount(invoice.remainingAmount, invoice.currency), {
-      bold: true,
-      color: Number(invoice.remainingAmount) > 0 ? "#b91c1c" : "#15803d",
-    });
+    totalLine("TOTAL", formatInvoiceAmount(order.total, order.currency), { bold: true });
 
     const footerParts = [
       settings.companyAddress,
@@ -179,10 +174,9 @@ export async function generateInvoicePdf(
       settings.ice ? `ICE: ${settings.ice}` : null,
     ].filter(Boolean);
 
-    // This footer is placed inside the page's bottom margin on purpose.
-    // PDFKit's auto-pagination check is based on page.margins.bottom, not
-    // any per-call text option — without zeroing it first, drawing text this
-    // close to the edge silently spills onto a near-blank extra page.
+    // See generateInvoicePdf.ts: PDFKit's auto-pagination check is based on
+    // page.margins.bottom, not a per-call text option — zero it first so a
+    // footer drawn inside the margin doesn't spill onto a blank extra page.
     const originalBottomMargin = doc.page.margins.bottom;
     doc.page.margins.bottom = 0;
 
@@ -190,7 +184,7 @@ export async function generateInvoicePdf(
       .font("Helvetica")
       .fontSize(8)
       .fillColor(MUTED_COLOR)
-      .text("Merci de votre confiance.", MARGIN, doc.page.height - 70, {
+      .text("Ce document est une confirmation de commande, pas une facture.", MARGIN, doc.page.height - 70, {
         width: contentWidth,
         align: "center",
       });

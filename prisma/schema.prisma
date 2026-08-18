@@ -26,6 +26,12 @@ enum Currency {
   CNY
 }
 
+enum OrderConfirmationStatus {
+  EN_ATTENTE
+  CONVERTIE
+  ANNULEE
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -80,8 +86,9 @@ model Product {
   brandId String?
   brand   Brand?  @relation(fields: [brandId], references: [id])
 
-  invoiceItems   InvoiceItem[]
-  stockMovements StockMovement[]
+  invoiceItems           InvoiceItem[]
+  stockMovements         StockMovement[]
+  orderConfirmationItems OrderConfirmationItem[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -120,7 +127,8 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  invoices Invoice[]
+  invoices           Invoice[]
+  orderConfirmations OrderConfirmation[]
 
   @@index([name])
   @@map("customers")
@@ -149,6 +157,7 @@ model Invoice {
   items          InvoiceItem[]
   stockMovements StockMovement[]
   payments       Payment[]
+  orderConfirmation OrderConfirmation?
 
   @@index([customerId])
   @@index([date])
@@ -188,6 +197,53 @@ model Payment {
   @@map("payments")
 }
 
+model OrderConfirmation {
+  id           String                   @id @default(cuid())
+  number       String                   @unique
+  date         DateTime                 @default(now())
+  currency     Currency                 @default(MAD)
+  exchangeRate Decimal                  @db.Decimal(10, 4) @default(1)
+  subtotal     Decimal                  @db.Decimal(10, 2)
+  vatRate      Decimal                  @db.Decimal(5, 2)
+  vatAmount    Decimal                  @db.Decimal(10, 2)
+  total        Decimal                  @db.Decimal(10, 2)
+  status       OrderConfirmationStatus  @default(EN_ATTENTE)
+  notes        String?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  items OrderConfirmationItem[]
+
+  // Set once this order confirmation is converted into a real Invoice.
+  invoiceId String?  @unique
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@index([customerId])
+  @@index([date])
+  @@map("order_confirmations")
+}
+
+model OrderConfirmationItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+
+  orderConfirmationId String
+  orderConfirmation   OrderConfirmation @relation(fields: [orderConfirmationId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  @@index([orderConfirmationId])
+  @@index([productId])
+  @@map("order_confirmation_items")
+}
+
 model Settings {
   id                   String   @id @default("singleton")
   companyName          String   @default("VHU MAROC")
@@ -214,4 +270,11 @@ model InvoiceCounter {
   lastNumber Int    @default(0)
 
   @@map("invoice_counter")
+}
+
+model OrderConfirmationCounter {
+  id         String @id @default("singleton")
+  lastNumber Int    @default(0)
+
+  @@map("order_confirmation_counter")
 }

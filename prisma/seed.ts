@@ -35,6 +35,12 @@ async function main() {
     create: { id: "singleton", lastNumber: 0 },
   });
 
+  await prisma.orderConfirmationCounter.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: { id: "singleton", lastNumber: 0 },
+  });
+
   if (process.env.SEED_SAMPLE_PRODUCTS !== "true") {
     console.log("Seed terminé (admin/settings uniquement — SEED_SAMPLE_PRODUCTS non activé).");
     return;

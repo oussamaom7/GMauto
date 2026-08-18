@@ -19,3 +19,19 @@ export async function getNextInvoiceNumber(
 
   return `${prefix}${String(counter.lastNumber).padStart(padding, "0")}`;
 }
+
+/**
+ * Same atomic-increment pattern as getNextInvoiceNumber, on its own counter.
+ * Uses upsert (not update) since existing databases were already seeded
+ * before this counter existed — this self-creates the singleton row on
+ * first use instead of depending on a reseed.
+ */
+export async function getNextOrderNumber(tx: TxClient): Promise<string> {
+  const counter = await tx.orderConfirmationCounter.upsert({
+    where: { id: "singleton" },
+    update: { lastNumber: { increment: 1 } },
+    create: { id: "singleton", lastNumber: 1 },
+  });
+
+  return `BC${String(counter.lastNumber).padStart(4, "0")}`;
+}
