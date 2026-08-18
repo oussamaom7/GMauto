@@ -56,10 +56,14 @@ function detectImageExtension(buffer: Buffer): string | null {
 }
 
 /**
- * Storage backend is picked at runtime: Vercel Blob when a store is attached
- * (BLOB_READ_WRITE_TOKEN is auto-injected by Vercel), local disk otherwise —
- * so local dev needs no cloud credentials, and production on Vercel (whose
- * filesystem is ephemeral) gets persistent storage automatically.
+ * Storage backend is picked at runtime: Vercel Blob when a store is attached,
+ * local disk otherwise — so local dev needs no cloud credentials, and
+ * production on Vercel (whose filesystem is ephemeral) gets persistent
+ * storage automatically. A store can be attached either via a static
+ * BLOB_READ_WRITE_TOKEN or via Vercel's newer OIDC-based connection
+ * (BLOB_STORE_ID + an auto-injected VERCEL_OIDC_TOKEN, no static secret) —
+ * `put()` itself already knows how to use either, we just need to attempt
+ * it whenever either one is present instead of only checking for the token.
  */
 async function saveUploadedFile(file: File, subfolder: string): Promise<string> {
   if (file.size > MAX_FILE_SIZE) {
@@ -74,7 +78,7 @@ async function saveUploadedFile(file: File, subfolder: string): Promise<string> 
 
   const filename = `${crypto.randomUUID()}${ext}`;
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
     const blob = await put(`${subfolder}/${filename}`, buffer, {
       access: "public",
       contentType: CONTENT_TYPE_BY_EXT[ext],
