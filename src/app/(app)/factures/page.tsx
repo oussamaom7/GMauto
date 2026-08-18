@@ -1,6 +1,7 @@
 import { Plus, Receipt, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/invoices/StatusBadge";
+import { DeleteInvoiceButton } from "@/components/invoices/DeleteInvoiceButton";
 import { formatDate, formatInvoiceAmount } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -55,9 +56,12 @@ export default async function FacturesPage() {
                   <StatusBadge status={inv.status} />
                 </TD>
                 <TD className="sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900">
-                  <Button href={`/factures/${inv.id}`} variant="secondary" size="sm" icon={<Eye size={14} />}>
-                    Voir
-                  </Button>
+                  <div className="flex justify-end gap-1.5">
+                    <Button href={`/factures/${inv.id}`} variant="secondary" size="sm" icon={<Eye size={14} />}>
+                      Voir
+                    </Button>
+                    <DeleteInvoiceButton invoiceId={inv.id} invoiceNumber={inv.number} size="sm" />
+                  </div>
                 </TD>
               </TR>
             ))}

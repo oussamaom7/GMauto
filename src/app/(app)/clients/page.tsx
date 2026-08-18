@@ -1,6 +1,7 @@
 import { Plus, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatInvoiceAmount } from "@/lib/format";
+import { DeleteCustomerButton } from "@/components/clients/DeleteCustomerButton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Table, THead, TH, TR, TD } from "@/components/ui/Table";
@@ -40,6 +41,7 @@ export default async function ClientsPage() {
             <TH>Factures</TH>
             <TH>Total acheté</TH>
             <TH>Solde</TH>
+            <TH className="sticky right-0 bg-zinc-50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900" />
           </THead>
           <tbody>
             {customers.map((c) => {
@@ -69,6 +71,11 @@ export default async function ClientsPage() {
                   <TD className="tabular-nums font-medium">{formatInvoiceAmount(totalAchete)}</TD>
                   <TD className={`tabular-nums ${solde > 0 ? "text-red-600" : ""}`}>
                     {formatInvoiceAmount(solde)}
+                  </TD>
+                  <TD className="sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900">
+                    <div className="flex justify-end">
+                      <DeleteCustomerButton customerId={c.id} customerName={c.name} size="sm" />
+                    </div>
                   </TD>
                 </TR>
               );

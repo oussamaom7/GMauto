@@ -229,3 +229,44 @@ export async function voidInvoice(invoiceId: string) {
   revalidatePath("/clients");
   if (customerId) revalidatePath(`/clients/${customerId}`);
 }
+
+export async function deleteInvoice(invoiceId: string) {
+  const session = await requireSession();
+
+  const customerId = await prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { items: true },
+    });
+    if (!invoice) return null;
+
+    // Restock, same as voidInvoice, unless it was already voided (stock
+    // was already restored then — crediting it again would double-count).
+    if (invoice.status !== "ANNULEE") {
+      for (const item of invoice.items) {
+        if (item.productId) {
+          await recordStockMovement(tx, {
+            productId: item.productId,
+            type: "ENTREE",
+            delta: item.quantity,
+            reference: `Suppression ${invoice.number}`,
+            userId: session?.user?.id,
+          });
+        }
+      }
+    }
+
+    // Items/payments cascade at the DB level; any stock movement still
+    // pointing at this invoice (including the compensating ones just
+    // created above) has its invoiceId set null rather than being deleted.
+    await tx.invoice.delete({ where: { id: invoiceId } });
+
+    return invoice.customerId;
+  });
+
+  revalidatePath("/factures");
+  revalidatePath("/stock");
+  revalidatePath("/stock/mouvements");
+  revalidatePath("/clients");
+  if (customerId) revalidatePath(`/clients/${customerId}`);
+}

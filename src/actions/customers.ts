@@ -70,3 +70,21 @@ export async function updateCustomer(
   revalidatePath(`/clients/${id}`);
   redirect(`/clients/${id}`);
 }
+
+export async function deleteCustomer(id: string): Promise<ActionState> {
+  await requireSession();
+
+  // Invoice.customerId is ON DELETE RESTRICT — a customer with billing
+  // history can't be removed without first deleting/reassigning those
+  // invoices, unlike a fresh customer with none.
+  const invoiceCount = await prisma.invoice.count({ where: { customerId: id } });
+  if (invoiceCount > 0) {
+    return {
+      error: "Ce client a des factures associées et ne peut pas être supprimé. Supprimez d'abord ses factures.",
+    };
+  }
+
+  await prisma.customer.delete({ where: { id } });
+  revalidatePath("/clients");
+  return undefined;
+}

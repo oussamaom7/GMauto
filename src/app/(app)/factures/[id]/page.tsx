@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/invoices/StatusBadge";
 import { RecordPaymentForm } from "@/components/invoices/RecordPaymentForm";
 import { VoidInvoiceButton } from "@/components/invoices/VoidInvoiceButton";
+import { DeleteInvoiceButton } from "@/components/invoices/DeleteInvoiceButton";
 import { formatDate, formatInvoiceAmount } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -150,11 +151,14 @@ export default async function FactureDetailPage({
 
       {canPay && <RecordPaymentForm invoiceId={invoice.id} />}
 
-      {!isVoided && (
-        <div>
-          <VoidInvoiceButton invoiceId={invoice.id} />
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2">
+        {!isVoided && <VoidInvoiceButton invoiceId={invoice.id} />}
+        <DeleteInvoiceButton
+          invoiceId={invoice.id}
+          invoiceNumber={invoice.number}
+          redirectTo="/factures"
+        />
+      </div>
     </div>
   );
 }
