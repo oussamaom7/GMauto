@@ -76,11 +76,6 @@ export async function generateStockPdf(
       .fontSize(18)
       .fillColor(TEXT_COLOR)
       .text(settings.companyName, nameX, MARGIN + (logoBuffer ? 9 : 0));
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(20)
-      .fillColor(TEXT_COLOR)
-      .text("INVENTAIRE DU STOCK", MARGIN, MARGIN, { width: contentWidth, align: "right" });
 
     let y = MARGIN + 50;
     doc.moveTo(MARGIN, y).lineTo(MARGIN + contentWidth, y).strokeColor(BORDER_COLOR).stroke();
@@ -187,7 +182,7 @@ export async function generateStockPdf(
       .font("Helvetica-Bold")
       .fontSize(12)
       .fillColor(TEXT_COLOR)
-      .text("VALEUR TOTALE DU STOCK", totalsX, y, { width: totalsWidth * 0.5 });
+      .text("TOTAL", totalsX, y, { width: totalsWidth * 0.5 });
     doc.text(pdfCurrency(totalValueMad, "MAD"), totalsX + totalsWidth * 0.5, y, {
       width: totalsWidth * 0.5,
       align: "right",
