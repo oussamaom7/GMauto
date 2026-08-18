@@ -126,13 +126,13 @@ export function ProductForm({
                 name="rmb"
                 defaultValue={initialValues?.rmb ?? 0}
                 onChange={(e) => setRmb(Number(e.target.value) || 0)}
-                className="flex-1 text-lg font-semibold"
+                className="min-w-0 flex-1 py-3 text-xl font-semibold"
               />
               <Select
                 name="rmbCurrency"
                 value={rmbCurrency}
                 onChange={(e) => setRmbCurrency(e.target.value as CurrencyCode)}
-                className="w-24 shrink-0 text-lg font-semibold"
+                className="w-[4.5rem] shrink-0 px-2 text-sm"
               >
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>
@@ -148,7 +148,7 @@ export function ProductForm({
               type="text"
               readOnly
               value={formatCurrency(total, rmbCurrency)}
-              className="text-lg font-semibold"
+              className="py-3 text-xl font-semibold"
             />
           </Field>
         </div>
