@@ -76,8 +76,8 @@ export function ProductForm({
           <Field label="Référence" htmlFor="reference">
             <Input id="reference" name="reference" required defaultValue={initialValues?.reference} />
           </Field>
-          <Field label="Désignation" htmlFor="name">
-            <Input id="name" name="name" required defaultValue={initialValues?.name} />
+          <Field label="Désignation" htmlFor="name" hint="Optionnel — la référence sera utilisée si vide.">
+            <Input id="name" name="name" defaultValue={initialValues?.name} />
           </Field>
         </div>
 

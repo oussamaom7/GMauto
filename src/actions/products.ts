@@ -99,7 +99,7 @@ export async function createProduct(
     const product = await tx.product.create({
       data: {
         reference: parsed.data.reference,
-        name: parsed.data.name,
+        name: parsed.data.name || parsed.data.reference,
         quantity: 0,
         rmb: parsed.data.rmb,
         rmbCurrency: parsed.data.rmbCurrency,
@@ -185,7 +185,7 @@ export async function updateProduct(
       where: { id },
       data: {
         reference: parsed.data.reference,
-        name: parsed.data.name,
+        name: parsed.data.name || parsed.data.reference,
         rmb: parsed.data.rmb,
         rmbCurrency: parsed.data.rmbCurrency,
         sellingPrice: parsed.data.sellingPrice,
