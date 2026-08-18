@@ -132,7 +132,8 @@ export function ProductForm({
                 name="rmbCurrency"
                 value={rmbCurrency}
                 onChange={(e) => setRmbCurrency(e.target.value as CurrencyCode)}
-                className="w-[4.5rem] shrink-0 px-2 text-sm"
+                className="shrink-0 pl-2 pr-1 text-sm"
+                style={{ width: "5.25rem" }}
               >
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>

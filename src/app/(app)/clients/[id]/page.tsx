@@ -89,7 +89,7 @@ export default async function ClientDetailPage({
               <TH>Date</TH>
               <TH>Total</TH>
               <TH>Statut</TH>
-              <TH />
+              <TH className="sticky right-0 bg-zinc-50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900" />
             </THead>
             <tbody>
               {customer.invoices.map((inv) => (
@@ -100,7 +100,7 @@ export default async function ClientDetailPage({
                   <TD>
                     <StatusBadge status={inv.status} />
                   </TD>
-                  <TD>
+                  <TD className="sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900">
                     <Button href={`/factures/${inv.id}`} variant="secondary" size="sm" icon={<Eye size={14} />}>
                       Voir
                     </Button>

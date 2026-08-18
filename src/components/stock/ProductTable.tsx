@@ -48,7 +48,7 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
         <TH className="hidden sm:table-cell">Prix unitaire</TH>
         <TH>Total</TH>
         <TH>Stock</TH>
-        <TH />
+        <TH className="sticky right-0 bg-zinc-50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900" />
       </THead>
       <tbody>
         {products.map((product) => (
@@ -83,13 +83,13 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
               {formatCurrency(Number(product.rmb) * product.quantity, product.rmbCurrency)}
             </TD>
             <TD>{stockBadge(product.quantity, product.minimumStock)}</TD>
-            <TD>
-              <div className="flex justify-end gap-1">
+            <TD className="sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900">
+              <div className="flex justify-end gap-1.5">
                 <a
                   href={`/stock/${product.id}`}
                   title="Modifier"
                   aria-label="Modifier"
-                  className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                  className="rounded-lg border border-zinc-200 bg-white p-3 text-zinc-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-blue-950/30"
                 >
                   <Pencil size={16} />
                 </a>
@@ -98,7 +98,7 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
                     type="submit"
                     title="Désactiver"
                     aria-label="Désactiver"
-                    className="rounded-lg p-2 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950/40"
+                    className="rounded-lg border border-zinc-200 bg-white p-3 text-zinc-600 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-red-950/30"
                   >
                     <Trash2 size={16} />
                   </button>

@@ -285,60 +285,62 @@ export function InvoiceForm({
         </button>
       </Card>
 
-      <div className="flex justify-end">
-        <Card className="w-full max-w-xs space-y-2.5">
-          <div className="flex justify-between text-sm">
-            <span className="text-zinc-500">Sous-total</span>
-            <span className="tabular-nums">{formatInvoiceAmount(subtotal, currency)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-1.5 text-zinc-500">
-              <input
-                type="checkbox"
-                name="applyVat"
-                checked={applyVat}
-                onChange={(e) => setApplyVat(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-              />
-              TVA ({vatRate}%)
-            </label>
-            <span className="tabular-nums">{formatInvoiceAmount(vatAmount, currency)}</span>
-          </div>
-          <div className="flex justify-between border-t border-zinc-200 pt-2.5 text-base font-semibold dark:border-zinc-800">
-            <span>Total</span>
-            <span className="tabular-nums">{formatInvoiceAmount(total, currency)}</span>
-          </div>
-          <div className="flex items-center justify-between pt-1">
-            <Label htmlFor="paidAmount" className="mb-0 text-zinc-500">
-              Payé
-            </Label>
-            <input
-              id="paidAmount"
-              type="number"
-              step="0.01"
-              name="paidAmount"
-              min={0}
-              value={paidAmount}
-              onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
-              className="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            />
-          </div>
-          <div className="flex justify-between text-base font-semibold">
-            <span>Solde à payer</span>
-            <span className="tabular-nums">{formatInvoiceAmount(remaining, currency)}</span>
-          </div>
-        </Card>
-      </div>
-
       {state?.error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300" role="alert">
           {state.error}
         </p>
       )}
 
-      <Button type="submit" disabled={isPending}>
-        {isPending ? "Génération..." : "Générer la facture"}
-      </Button>
+      <div className="flex justify-end">
+        <div className="w-full max-w-xs space-y-3">
+          <Card className="space-y-2.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-zinc-500">Sous-total</span>
+              <span className="tabular-nums">{formatInvoiceAmount(subtotal, currency)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-1.5 text-zinc-500">
+                <input
+                  type="checkbox"
+                  name="applyVat"
+                  checked={applyVat}
+                  onChange={(e) => setApplyVat(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                />
+                TVA ({vatRate}%)
+              </label>
+              <span className="tabular-nums">{formatInvoiceAmount(vatAmount, currency)}</span>
+            </div>
+            <div className="flex justify-between border-t border-zinc-200 pt-2.5 text-base font-semibold dark:border-zinc-800">
+              <span>Total</span>
+              <span className="tabular-nums">{formatInvoiceAmount(total, currency)}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <Label htmlFor="paidAmount" className="mb-0 text-zinc-500">
+                Payé
+              </Label>
+              <input
+                id="paidAmount"
+                type="number"
+                step="0.01"
+                name="paidAmount"
+                min={0}
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
+                className="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              />
+            </div>
+            <div className="flex justify-between text-base font-semibold">
+              <span>Solde à payer</span>
+              <span className="tabular-nums">{formatInvoiceAmount(remaining, currency)}</span>
+            </div>
+          </Card>
+
+          <Button type="submit" disabled={isPending} className="w-full">
+            {isPending ? "Génération..." : "Générer la facture"}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }
