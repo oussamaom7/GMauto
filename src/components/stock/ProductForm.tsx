@@ -126,13 +126,13 @@ export function ProductForm({
                 name="rmb"
                 defaultValue={initialValues?.rmb ?? 0}
                 onChange={(e) => setRmb(Number(e.target.value) || 0)}
-                className="flex-1"
+                className="flex-1 text-lg font-semibold"
               />
               <Select
                 name="rmbCurrency"
                 value={rmbCurrency}
                 onChange={(e) => setRmbCurrency(e.target.value as CurrencyCode)}
-                className="w-24 shrink-0"
+                className="w-24 shrink-0 text-lg font-semibold"
               >
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>
@@ -144,7 +144,12 @@ export function ProductForm({
           </Field>
 
           <Field label="Total">
-            <Input type="text" readOnly value={formatCurrency(total, rmbCurrency)} className="font-medium" />
+            <Input
+              type="text"
+              readOnly
+              value={formatCurrency(total, rmbCurrency)}
+              className="text-lg font-semibold"
+            />
           </Field>
         </div>
 

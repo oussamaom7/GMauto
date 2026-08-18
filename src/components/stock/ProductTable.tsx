@@ -1,4 +1,4 @@
-import { Package, ImageOff } from "lucide-react";
+import { Package, ImageOff, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Table, THead, TH, TR, TD } from "@/components/ui/Table";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -84,19 +84,23 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
             </TD>
             <TD>{stockBadge(product.quantity, product.minimumStock)}</TD>
             <TD>
-              <div className="flex justify-end gap-4">
+              <div className="flex justify-end gap-1">
                 <a
                   href={`/stock/${product.id}`}
-                  className="text-xs font-medium text-zinc-600 hover:text-blue-600 hover:underline dark:text-zinc-300"
+                  title="Modifier"
+                  aria-label="Modifier"
+                  className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 >
-                  Modifier
+                  <Pencil size={16} />
                 </a>
                 <form action={deactivateProduct.bind(null, product.id)}>
                   <button
                     type="submit"
-                    className="text-xs font-medium text-red-600 hover:underline"
+                    title="Désactiver"
+                    aria-label="Désactiver"
+                    className="rounded-lg p-2 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950/40"
                   >
-                    Désactiver
+                    <Trash2 size={16} />
                   </button>
                 </form>
               </div>
