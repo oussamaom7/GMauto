@@ -25,6 +25,7 @@ export default async function NouvelleFacturePage() {
           rmb: Number(p.rmb),
           rmbCurrency: p.rmbCurrency,
           quantity: p.quantity,
+          side: p.side,
         }))}
         vatRate={Number(settings.defaultVatRate)}
         rates={{

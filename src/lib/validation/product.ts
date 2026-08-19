@@ -10,6 +10,7 @@ export const productSchema = z.object({
   sellingPrice: z.coerce.number().min(0).optional(),
   minimumStock: z.coerce.number().int().min(0).default(0),
   location: z.string().trim().optional(),
+  side: z.enum(["GAUCHE", "DROIT"]).optional(),
   category: z.string().trim().optional(),
   brand: z.string().trim().optional(),
 });

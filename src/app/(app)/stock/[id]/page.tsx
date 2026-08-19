@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Table, THead, TH, TR, TD } from "@/components/ui/Table";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { PRODUCT_SIDE_LABELS } from "@/lib/productSide";
 
 export default async function ModifierProduitPage({
   params,
@@ -41,7 +42,11 @@ export default async function ModifierProduitPage({
     <div className="space-y-8">
       <PageHeader
         title={product.name}
-        description={`Prix unitaire : ${formatCurrency(product.rmb, product.rmbCurrency)}`}
+        description={
+          product.side
+            ? `Prix unitaire : ${formatCurrency(product.rmb, product.rmbCurrency)} · Côté : ${PRODUCT_SIDE_LABELS[product.side]}`
+            : `Prix unitaire : ${formatCurrency(product.rmb, product.rmbCurrency)}`
+        }
         actions={
           <Button href="/stock" variant="secondary" icon={<ArrowLeft size={16} />}>
             Retour au stock
@@ -61,6 +66,7 @@ export default async function ModifierProduitPage({
           sellingPrice: product.sellingPrice ? Number(product.sellingPrice) : null,
           minimumStock: product.minimumStock,
           location: product.location ?? "",
+          side: product.side,
           category: product.category?.name ?? "",
           brand: product.brand?.name ?? "",
           imageUrl: product.imageUrl,

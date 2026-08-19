@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
 import { CURRENCIES, type CurrencyCode } from "@/lib/currency";
+import { PRODUCT_SIDES, PRODUCT_SIDE_LABELS, type ProductSideCode } from "@/lib/productSide";
 
 type ProductFormValues = {
   reference: string;
@@ -19,6 +20,7 @@ type ProductFormValues = {
   sellingPrice: number | null;
   minimumStock: number;
   location: string;
+  side: ProductSideCode | null;
   category: string;
   brand: string;
   imageUrl: string | null;
@@ -174,9 +176,21 @@ export function ProductForm({
           </Field>
         </div>
 
-        <Field label="Emplacement" htmlFor="location">
-          <Input id="location" name="location" defaultValue={initialValues?.location} />
-        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Emplacement" htmlFor="location">
+            <Input id="location" name="location" defaultValue={initialValues?.location} />
+          </Field>
+          <Field label="Côté" htmlFor="side" hint="Optionnel — pour les pièces qui existent en gauche/droite.">
+            <Select id="side" name="side" defaultValue={initialValues?.side ?? ""}>
+              <option value="">—</option>
+              {PRODUCT_SIDES.map((s) => (
+                <option key={s} value={s}>
+                  {PRODUCT_SIDE_LABELS[s]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
 
         {state?.error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300" role="alert">

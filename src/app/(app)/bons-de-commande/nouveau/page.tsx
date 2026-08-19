@@ -28,6 +28,7 @@ export default async function NouveauBonDeCommandePage() {
           rmb: Number(p.rmb),
           rmbCurrency: p.rmbCurrency,
           quantity: p.quantity,
+          side: p.side,
         }))}
         vatRate={Number(settings.defaultVatRate)}
         rates={{

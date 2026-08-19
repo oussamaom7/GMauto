@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
 import type { CurrencyCode } from "@/lib/currency";
+import { PRODUCT_SIDE_LABELS, type ProductSideCode } from "@/lib/productSide";
 import { deactivateProduct } from "@/actions/products";
 
 type ProductRow = {
@@ -17,6 +18,7 @@ type ProductRow = {
   rmb: unknown;
   rmbCurrency: CurrencyCode;
   minimumStock: number;
+  side: ProductSideCode | null;
   category: { name: string } | null;
   brand: { name: string } | null;
 };
@@ -68,7 +70,14 @@ export function ProductTable({ products }: { products: ProductRow[] }) {
               )}
             </TD>
             <TD>
-              <p className="font-medium text-zinc-900 dark:text-zinc-50">{product.name}</p>
+              <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                {product.name}
+                {product.side && (
+                  <span className="ml-1.5 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                    {PRODUCT_SIDE_LABELS[product.side]}
+                  </span>
+                )}
+              </p>
               <p className="text-xs text-zinc-500">
                 {product.reference}
                 {product.category ? ` · ${product.category.name}` : ""}

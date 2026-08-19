@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // pdfkit reads its font metrics (.afm) files from disk relative to its own
   // module location at runtime; bundling it breaks that path resolution.
-  serverExternalPackages: ["pdfkit"],
+  // sharp ships platform-native binaries that must stay external too.
+  serverExternalPackages: ["pdfkit", "sharp"],
   async headers() {
     return [
       {

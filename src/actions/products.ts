@@ -57,6 +57,7 @@ export async function createProduct(
     sellingPrice: formData.get("sellingPrice") || undefined,
     minimumStock: formData.get("minimumStock") || 0,
     location: formData.get("location") || undefined,
+    side: formData.get("side") || undefined,
     category: formData.get("category") || undefined,
     brand: formData.get("brand") || undefined,
   });
@@ -106,6 +107,7 @@ export async function createProduct(
         sellingPrice: parsed.data.sellingPrice,
         minimumStock: parsed.data.minimumStock,
         location: parsed.data.location,
+        side: parsed.data.side ?? null,
         categoryId,
         brandId,
         imageUrl,
@@ -142,6 +144,7 @@ export async function updateProduct(
     sellingPrice: formData.get("sellingPrice") || undefined,
     minimumStock: formData.get("minimumStock") || 0,
     location: formData.get("location") || undefined,
+    side: formData.get("side") || undefined,
     category: formData.get("category") || undefined,
     brand: formData.get("brand") || undefined,
   });
@@ -191,6 +194,7 @@ export async function updateProduct(
         sellingPrice: parsed.data.sellingPrice,
         minimumStock: parsed.data.minimumStock,
         location: parsed.data.location,
+        side: parsed.data.side ?? null,
         categoryId,
         brandId,
         ...(imageUrl ? { imageUrl } : {}),

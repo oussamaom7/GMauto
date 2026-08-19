@@ -4,6 +4,7 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { formatInvoiceAmount } from "@/lib/format";
 import { CURRENCIES, fromMad, toMad, type CurrencyCode } from "@/lib/currency";
+import { PRODUCT_SIDE_LABELS, type ProductSideCode } from "@/lib/productSide";
 import type { ActionState } from "@/actions/orderConfirmations";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Label } from "@/components/ui/FormControls";
@@ -17,6 +18,7 @@ type ProductOption = {
   rmb: number;
   rmbCurrency: CurrencyCode;
   quantity: number;
+  side: ProductSideCode | null;
 };
 
 type CustomerOption = { id: string; name: string };
@@ -238,6 +240,7 @@ export function OrderConfirmationForm({
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.reference} · {p.name}
+                        {p.side ? ` (${PRODUCT_SIDE_LABELS[p.side]})` : ""}
                       </option>
                     ))}
                   </Select>
