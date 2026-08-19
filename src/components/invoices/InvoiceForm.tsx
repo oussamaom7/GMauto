@@ -4,11 +4,12 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { formatInvoiceAmount } from "@/lib/format";
 import { CURRENCIES, fromMad, toMad, type CurrencyCode } from "@/lib/currency";
-import { PRODUCT_SIDE_LABELS, type ProductSideCode } from "@/lib/productSide";
+import type { ProductSideCode } from "@/lib/productSide";
 import type { ActionState } from "@/actions/invoices";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Label } from "@/components/ui/FormControls";
 import { Button } from "@/components/ui/Button";
+import { ProductCombobox } from "@/components/stock/ProductCombobox";
 
 type ProductOption = {
   id: string;
@@ -221,19 +222,13 @@ export function InvoiceForm({
                 className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/40"
               >
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-12">
-                  <Select
-                    className="col-span-2 sm:col-span-3"
-                    value={item.productId ?? ""}
-                    onChange={(e) => onProductSelect(item.key, e.target.value)}
-                  >
-                    <option value="">— Ligne libre —</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.reference} · {p.name}
-                        {p.side ? ` (${PRODUCT_SIDE_LABELS[p.side]})` : ""}
-                      </option>
-                    ))}
-                  </Select>
+                  <div className="col-span-2 sm:col-span-3">
+                    <ProductCombobox
+                      products={products}
+                      value={item.productId}
+                      onSelect={(id) => onProductSelect(item.key, id ?? "")}
+                    />
+                  </div>
 
                   <Input
                     className="col-span-2 sm:col-span-4"
