@@ -1,5 +1,6 @@
 import { Plus, ClipboardList, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { OrderStatusBadge } from "@/components/orderConfirmations/OrderStatusBadge";
 import { DeleteOrderConfirmationButton } from "@/components/orderConfirmations/DeleteOrderConfirmationButton";
 import { formatDate, formatInvoiceAmount } from "@/lib/format";
@@ -8,8 +9,25 @@ import { Button } from "@/components/ui/Button";
 import { Table, THead, TH, TR, TD } from "@/components/ui/Table";
 import { EmptyState } from "@/components/ui/EmptyState";
 
-export default async function BonsDeCommandePage() {
+export default async function BonsDeCommandePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+
+  const where: Prisma.OrderConfirmationWhereInput = q
+    ? {
+        OR: [
+          { number: { contains: q, mode: "insensitive" } },
+          { reference: { contains: q, mode: "insensitive" } },
+          { customer: { name: { contains: q, mode: "insensitive" } } },
+        ],
+      }
+    : {};
+
   const orders = await prisma.orderConfirmation.findMany({
+    where,
     orderBy: { date: "desc" },
     include: { customer: true },
   });
@@ -18,7 +36,11 @@ export default async function BonsDeCommandePage() {
     <div>
       <PageHeader
         title="Bons de commande"
-        description="Confirmations de commande client, convertibles en facture."
+        description={
+          q
+            ? `Résultats pour « ${q} »`
+            : "Confirmations de commande client, convertibles en facture."
+        }
         actions={
           <Button href="/bons-de-commande/nouveau" icon={<Plus size={16} />}>
             Nouveau bon de commande
@@ -29,9 +51,13 @@ export default async function BonsDeCommandePage() {
       {orders.length === 0 ? (
         <EmptyState
           icon={<ClipboardList size={22} />}
-          title="Aucun bon de commande"
-          description="Créez un bon de commande pour confirmer une commande avant de la facturer."
-          action={<Button href="/bons-de-commande/nouveau">Nouveau bon de commande</Button>}
+          title={q ? "Aucun résultat" : "Aucun bon de commande"}
+          description={
+            q
+              ? "Essayez une autre référence, un autre numéro ou un autre nom de client."
+              : "Créez un bon de commande pour confirmer une commande avant de la facturer."
+          }
+          action={!q ? <Button href="/bons-de-commande/nouveau">Nouveau bon de commande</Button> : undefined}
         />
       ) : (
         <Table minWidth={680}>
