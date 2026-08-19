@@ -28,6 +28,7 @@ type CustomerOption = { id: string; name: string };
 type LineItem = {
   key: string;
   productId: string | null;
+  reference: string;
   description: string;
   quantity: string;
   unitPrice: string;
@@ -59,7 +60,7 @@ export function OrderConfirmationForm({
   const [state, formAction, isPending] = useActionState(action, undefined);
   const nextKey = useRef(1);
   const [items, setItems] = useState<LineItem[]>([
-    { key: "row-0", productId: null, description: "", quantity: "1", unitPrice: "" },
+    { key: "row-0", productId: null, reference: "", description: "", quantity: "1", unitPrice: "" },
   ]);
   const [clientMode, setClientMode] = useState<"existing" | "new">(
     customers.length > 0 ? "existing" : "new"
@@ -73,6 +74,7 @@ export function OrderConfirmationForm({
       {
         key: `row-${nextKey.current++}`,
         productId: null,
+        reference: "",
         description: "",
         quantity: "1",
         unitPrice: "",
@@ -98,6 +100,7 @@ export function OrderConfirmationForm({
     const priceInMad = product.sellingPrice ?? toMad(product.rmb, product.rmbCurrency, rates);
     updateRow(key, {
       productId: product.id,
+      reference: product.reference,
       description: product.name,
       unitPrice: String(Math.round(fromMad(priceInMad, currency, rates) * 100) / 100),
     });
@@ -116,6 +119,7 @@ export function OrderConfirmationForm({
       .filter((i) => i.description.trim().length > 0 && Number(i.quantity) > 0)
       .map((i) => ({
         productId: i.productId,
+        reference: i.reference,
         description: i.description,
         quantity: Number(i.quantity) || 0,
         unitPrice: Number(i.unitPrice) || 0,
@@ -226,7 +230,7 @@ export function OrderConfirmationForm({
               >
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-12">
                   <Select
-                    className="col-span-2 sm:col-span-3"
+                    className="col-span-2 sm:col-span-2"
                     value={item.productId ?? ""}
                     onChange={(e) => onProductSelect(item.key, e.target.value)}
                   >
@@ -239,7 +243,14 @@ export function OrderConfirmationForm({
                   </Select>
 
                   <Input
-                    className="col-span-2 sm:col-span-4"
+                    className="col-span-2 sm:col-span-2"
+                    placeholder="Référence"
+                    value={item.reference}
+                    onChange={(e) => updateRow(item.key, { reference: e.target.value })}
+                  />
+
+                  <Input
+                    className="col-span-2 sm:col-span-3"
                     placeholder="Désignation"
                     value={item.description}
                     onChange={(e) => updateRow(item.key, { description: e.target.value })}

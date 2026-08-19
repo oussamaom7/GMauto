@@ -87,13 +87,14 @@ export async function createOrderConfirmation(
         items: {
           create: parsed.data.items.map((item) => ({
             productId: item.productId,
+            reference: item.reference || null,
             description: item.description,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             total: item.quantity * item.unitPrice,
           })),
         },
-      },
+      }, 
     });
 
     return { orderId: order.id, customerId };

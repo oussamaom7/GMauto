@@ -81,8 +81,10 @@ export default async function BonDeCommandeDetailPage({
             <TR key={item.id}>
               <TD>
                 {item.description}
-                {item.product && (
-                  <span className="ml-1 text-xs text-zinc-400">({item.product.reference})</span>
+                {(item.reference || item.product?.reference) && (
+                  <span className="ml-1 text-xs text-zinc-400">
+                    ({item.reference || item.product?.reference})
+                  </span>
                 )}
               </TD>
               <TD className="tabular-nums">{item.quantity}</TD>

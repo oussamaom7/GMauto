@@ -229,6 +229,7 @@ model OrderConfirmation {
 
 model OrderConfirmationItem {
   id          String  @id @default(cuid())
+  reference   String?
   description String
   quantity    Int
   unitPrice   Decimal @db.Decimal(10, 2)

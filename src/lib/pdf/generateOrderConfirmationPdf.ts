@@ -131,12 +131,15 @@ export async function generateOrderConfirmationPdf(
 
     doc.font("Helvetica").fontSize(9.5).fillColor(TEXT_COLOR);
     order.items.forEach((item, i) => {
+      const reference = item.reference || item.product?.reference || null;
+
       // Long descriptions wrap to multiple lines within the narrow desc
       // column — measure the actual wrapped height so the row grows to fit
       // instead of the next row's photo/text overlapping it.
       doc.font("Helvetica").fontSize(9.5);
       const descHeight = doc.heightOfString(item.description, { width: cols.desc.width - 12 });
-      const rowHeight = Math.max(MIN_ROW_HEIGHT, descHeight + 20);
+      const refHeight = reference ? 12 : 0;
+      const rowHeight = Math.max(MIN_ROW_HEIGHT, descHeight + refHeight + 20);
 
       if (y + rowHeight > doc.page.height - 220) {
         doc.addPage();
@@ -158,8 +161,19 @@ export async function generateOrderConfirmationPdf(
       }
       doc.font("Helvetica").fontSize(9.5).fillColor(TEXT_COLOR);
       doc.text(item.description, cols.desc.x + 8, rowTop + 10, { width: cols.desc.width - 12 });
+      if (reference) {
+        doc
+          .font("Helvetica")
+          .fontSize(8)
+          .fillColor(MUTED_COLOR)
+          .text(reference, cols.desc.x + 8, rowTop + 10 + descHeight + 2, { width: cols.desc.width - 12 });
+      }
       const valueY = rowTop + (rowHeight - 12) / 2;
-      doc.text(String(item.quantity), cols.qty.x, valueY, { width: cols.qty.width, align: "right" });
+      doc
+        .font("Helvetica")
+        .fontSize(9.5)
+        .fillColor(TEXT_COLOR)
+        .text(String(item.quantity), cols.qty.x, valueY, { width: cols.qty.width, align: "right" });
       doc.text(formatInvoiceAmount(item.unitPrice, order.currency), cols.pu.x, valueY, { width: cols.pu.width - 8, align: "right" });
       doc.text(`${vatRate}%`, cols.tva.x, valueY, { width: cols.tva.width, align: "right" });
       doc.text(formatInvoiceAmount(item.total, order.currency), cols.montant.x, valueY, { width: cols.montant.width - 8, align: "right" });
