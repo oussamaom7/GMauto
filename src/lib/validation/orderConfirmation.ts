@@ -5,6 +5,7 @@ import { invoiceItemSchema } from "@/lib/validation/invoice";
 export const createOrderConfirmationSchema = z
   .object({
     customerId: z.string().optional(),
+    reference: z.string().trim().optional(),
     newCustomerName: z.string().trim().optional(),
     newCustomerPhone: z.string().trim().optional(),
     newCustomerEmail: z.string().trim().optional(),

@@ -21,18 +21,26 @@ type ProductOption = {
 
 type CustomerOption = { id: string; name: string };
 
+// quantity/unitPrice are kept as raw strings (not numbers) so a controlled
+// input can hold an empty intermediate state while typing — with a number,
+// clearing the field to retype snaps back to 0 before the next keystroke
+// lands, producing artifacts like "0778" instead of "778".
 type LineItem = {
   key: string;
   productId: string | null;
   description: string;
-  quantity: number;
-  unitPrice: number;
+  quantity: string;
+  unitPrice: string;
 };
 
 type ExchangeRates = { eurToMad: number; usdToMad: number; cnyToMad: number };
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function selectAllOnFocus(e: React.FocusEvent<HTMLInputElement>) {
+  e.target.select();
 }
 
 export function OrderConfirmationForm({
@@ -51,7 +59,7 @@ export function OrderConfirmationForm({
   const [state, formAction, isPending] = useActionState(action, undefined);
   const nextKey = useRef(1);
   const [items, setItems] = useState<LineItem[]>([
-    { key: "row-0", productId: null, description: "", quantity: 1, unitPrice: 0 },
+    { key: "row-0", productId: null, description: "", quantity: "1", unitPrice: "" },
   ]);
   const [clientMode, setClientMode] = useState<"existing" | "new">(
     customers.length > 0 ? "existing" : "new"
@@ -66,8 +74,8 @@ export function OrderConfirmationForm({
         key: `row-${nextKey.current++}`,
         productId: null,
         description: "",
-        quantity: 1,
-        unitPrice: 0,
+        quantity: "1",
+        unitPrice: "",
       },
     ]);
   }
@@ -91,12 +99,13 @@ export function OrderConfirmationForm({
     updateRow(key, {
       productId: product.id,
       description: product.name,
-      unitPrice: Math.round(fromMad(priceInMad, currency, rates) * 100) / 100,
+      unitPrice: String(Math.round(fromMad(priceInMad, currency, rates) * 100) / 100),
     });
   }
 
   const subtotal = useMemo(
-    () => items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0),
+    () =>
+      items.reduce((sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0), 0),
     [items]
   );
   const vatAmount = applyVat ? subtotal * (vatRate / 100) : 0;
@@ -104,12 +113,12 @@ export function OrderConfirmationForm({
 
   const itemsJson = JSON.stringify(
     items
-      .filter((i) => i.description.trim().length > 0 && i.quantity > 0)
+      .filter((i) => i.description.trim().length > 0 && Number(i.quantity) > 0)
       .map((i) => ({
         productId: i.productId,
         description: i.description,
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
+        quantity: Number(i.quantity) || 0,
+        unitPrice: Number(i.unitPrice) || 0,
       }))
   );
 
@@ -173,6 +182,16 @@ export function OrderConfirmationForm({
         )}
 
         <div className="mt-4">
+          <Field
+            label="Référence"
+            htmlFor="reference"
+            hint="Optionnel — numéro de commande du client ou référence interne."
+          >
+            <Input id="reference" name="reference" placeholder="ex: PO-2026-014" />
+          </Field>
+        </div>
+
+        <div className="mt-4">
           <Field label="Devise" htmlFor="currency">
             <Select
               id="currency"
@@ -198,7 +217,7 @@ export function OrderConfirmationForm({
           {items.map((item) => {
             const product = products.find((p) => p.id === item.productId);
             const insufficientStock =
-              product && product.quantity - item.quantity < 0;
+              product && product.quantity - (Number(item.quantity) || 0) < 0;
 
             return (
               <div
@@ -231,9 +250,8 @@ export function OrderConfirmationForm({
                     min={1}
                     className="col-span-1"
                     value={item.quantity}
-                    onChange={(e) =>
-                      updateRow(item.key, { quantity: Number(e.target.value) || 0 })
-                    }
+                    onChange={(e) => updateRow(item.key, { quantity: e.target.value })}
+                    onFocus={selectAllOnFocus}
                   />
 
                   <Input
@@ -241,13 +259,15 @@ export function OrderConfirmationForm({
                     step="0.01"
                     className="col-span-1 sm:col-span-2"
                     value={item.unitPrice}
-                    onChange={(e) =>
-                      updateRow(item.key, { unitPrice: Number(e.target.value) || 0 })
-                    }
+                    onChange={(e) => updateRow(item.key, { unitPrice: e.target.value })}
+                    onFocus={selectAllOnFocus}
                   />
 
                   <div className="col-span-1 flex items-center px-1 text-sm font-medium tabular-nums text-zinc-700 dark:text-zinc-300 sm:col-span-1 sm:justify-end">
-                    {formatInvoiceAmount(item.quantity * item.unitPrice, currency)}
+                    {formatInvoiceAmount(
+                      (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
+                      currency
+                    )}
                   </div>
 
                   <button

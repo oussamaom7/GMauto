@@ -94,8 +94,18 @@ export async function generateStockPdf(
 
     drawTableHeader();
 
+    const REF_LINE_HEIGHT = 10;
+    const ROW_PADDING = 10;
+
     products.forEach((product, i) => {
-      if (y + ROW_HEIGHT > doc.page.height - 130) {
+      // Long product names wrap to 2-3 lines within the narrow ref column —
+      // measure the actual wrapped height so the reference line below it
+      // (and the row itself) grow to fit instead of overlapping.
+      doc.font("Helvetica-Bold").fontSize(9.5);
+      const nameHeight = doc.heightOfString(product.name, { width: cols.ref.width });
+      const rowHeight = Math.max(ROW_HEIGHT, nameHeight + REF_LINE_HEIGHT + ROW_PADDING);
+
+      if (y + rowHeight > doc.page.height - 130) {
         doc.addPage();
         y = MARGIN;
         drawTableHeader();
@@ -105,7 +115,9 @@ export async function generateStockPdf(
       const photoBuf = photoBuffers[i];
       if (photoBuf) {
         try {
-          doc.image(photoBuf, cols.photo.x + 4, rowTop + 5, { fit: [PHOTO_SIZE, PHOTO_SIZE] });
+          doc.image(photoBuf, cols.photo.x + 4, rowTop + (rowHeight - PHOTO_SIZE) / 2, {
+            fit: [PHOTO_SIZE, PHOTO_SIZE],
+          });
         } catch {
           // Corrupt/unreadable image — skip drawing it, keep the row.
         }
@@ -120,14 +132,15 @@ export async function generateStockPdf(
         .font("Helvetica")
         .fontSize(8)
         .fillColor(MUTED_COLOR)
-        .text(product.reference, cols.ref.x, rowTop + 19, { width: cols.ref.width });
+        .text(product.reference, cols.ref.x, rowTop + 5 + nameHeight + 2, { width: cols.ref.width });
 
+      const valueY = rowTop + (rowHeight - 12) / 2;
       doc
         .font("Helvetica")
         .fontSize(9.5)
         .fillColor(TEXT_COLOR)
-        .text(String(product.quantity), cols.qty.x, rowTop + 12, { width: cols.qty.width, align: "right" });
-      doc.text(pdfCurrency(product.rmb, product.rmbCurrency as CurrencyCode), cols.rmb.x, rowTop + 12, {
+        .text(String(product.quantity), cols.qty.x, valueY, { width: cols.qty.width, align: "right" });
+      doc.text(pdfCurrency(product.rmb, product.rmbCurrency as CurrencyCode), cols.rmb.x, valueY, {
         width: cols.rmb.width - 8,
         align: "right",
       });
@@ -136,11 +149,11 @@ export async function generateStockPdf(
         .text(
           pdfCurrency(Number(product.rmb) * product.quantity, product.rmbCurrency as CurrencyCode),
           cols.total.x,
-          rowTop + 12,
+          valueY,
           { width: cols.total.width - 8, align: "right" }
         );
 
-      y += ROW_HEIGHT;
+      y += rowHeight;
       doc.moveTo(MARGIN, y).lineTo(MARGIN + contentWidth, y).strokeColor(BORDER_COLOR).stroke();
     });
 

@@ -36,7 +36,11 @@ export default async function BonDeCommandeDetailPage({
     <div className="max-w-3xl space-y-6">
       <PageHeader
         title={order.number}
-        description={formatDate(order.date)}
+        description={
+          order.reference
+            ? `${formatDate(order.date)} · Réf. client : ${order.reference}`
+            : formatDate(order.date)
+        }
         actions={
           <>
             <Button href="/bons-de-commande" variant="secondary" icon={<ArrowLeft size={16} />}>

@@ -33,6 +33,7 @@ export async function createOrderConfirmation(
 
   const parsed = createOrderConfirmationSchema.safeParse({
     customerId: formData.get("customerId") || undefined,
+    reference: formData.get("reference") || undefined,
     newCustomerName: formData.get("newCustomerName") || undefined,
     newCustomerPhone: formData.get("newCustomerPhone") || undefined,
     newCustomerEmail: formData.get("newCustomerEmail") || undefined,
@@ -74,6 +75,7 @@ export async function createOrderConfirmation(
     const order = await tx.orderConfirmation.create({
       data: {
         number,
+        reference: parsed.data.reference || null,
         customerId,
         date: new Date(parsed.data.date),
         currency: parsed.data.currency,

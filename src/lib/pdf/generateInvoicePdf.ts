@@ -115,31 +115,42 @@ export async function generateInvoicePdf(
 
     drawTableHeader();
 
+    const MIN_ROW_HEIGHT = 30;
+
     doc.font("Helvetica").fontSize(9.5).fillColor(TEXT_COLOR);
     invoice.items.forEach((item, i) => {
-      if (y > doc.page.height - 220) {
+      // Long descriptions wrap to multiple lines within the narrow desc
+      // column — measure the actual wrapped height so the row grows to fit
+      // instead of the next row's photo/text overlapping it.
+      doc.font("Helvetica").fontSize(9.5);
+      const descHeight = doc.heightOfString(item.description, { width: cols.desc.width - 12 });
+      const rowHeight = Math.max(MIN_ROW_HEIGHT, descHeight + 20);
+
+      if (y + rowHeight > doc.page.height - 220) {
         doc.addPage();
         y = MARGIN;
         drawTableHeader();
         doc.font("Helvetica").fontSize(9.5).fillColor(TEXT_COLOR);
       }
 
-      const rowHeight = 30;
       const rowTop = y;
       const photoBuf = photoBuffers[i];
       if (photoBuf) {
         try {
-          doc.image(photoBuf, cols.photo.x + 4, rowTop + 3, { fit: [PHOTO_SIZE, PHOTO_SIZE] });
+          doc.image(photoBuf, cols.photo.x + 4, rowTop + (rowHeight - PHOTO_SIZE) / 2, {
+            fit: [PHOTO_SIZE, PHOTO_SIZE],
+          });
         } catch {
           // Corrupt/unreadable image — skip drawing it, keep the row.
         }
       }
       doc.font("Helvetica").fontSize(9.5).fillColor(TEXT_COLOR);
-      doc.text(item.description, cols.desc.x + 8, y + 10, { width: cols.desc.width - 12 });
-      doc.text(String(item.quantity), cols.qty.x, y + 10, { width: cols.qty.width, align: "right" });
-      doc.text(formatInvoiceAmount(item.unitPrice, invoice.currency), cols.pu.x, y + 10, { width: cols.pu.width - 8, align: "right" });
-      doc.text(`${vatRate}%`, cols.tva.x, y + 10, { width: cols.tva.width, align: "right" });
-      doc.text(formatInvoiceAmount(item.total, invoice.currency), cols.montant.x, y + 10, { width: cols.montant.width - 8, align: "right" });
+      doc.text(item.description, cols.desc.x + 8, rowTop + 10, { width: cols.desc.width - 12 });
+      const valueY = rowTop + (rowHeight - 12) / 2;
+      doc.text(String(item.quantity), cols.qty.x, valueY, { width: cols.qty.width, align: "right" });
+      doc.text(formatInvoiceAmount(item.unitPrice, invoice.currency), cols.pu.x, valueY, { width: cols.pu.width - 8, align: "right" });
+      doc.text(`${vatRate}%`, cols.tva.x, valueY, { width: cols.tva.width, align: "right" });
+      doc.text(formatInvoiceAmount(item.total, invoice.currency), cols.montant.x, valueY, { width: cols.montant.width - 8, align: "right" });
       y += rowHeight;
       doc.moveTo(MARGIN, y).lineTo(MARGIN + contentWidth, y).strokeColor(BORDER_COLOR).stroke();
     });

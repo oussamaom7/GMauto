@@ -200,6 +200,7 @@ model Payment {
 model OrderConfirmation {
   id           String                   @id @default(cuid())
   number       String                   @unique
+  reference    String?
   date         DateTime                 @default(now())
   currency     Currency                 @default(MAD)
   exchangeRate Decimal                  @db.Decimal(10, 4) @default(1)
