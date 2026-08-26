@@ -105,6 +105,12 @@ export function OrderConfirmationForm({
   function handleProductCreated(key: string, product: ProductOption) {
     setProducts((list) => [...list, product]);
     applyProductToRow(key, product);
+    // The quantity typed in the quick-create panel is what the shop meant to
+    // put on this line — carry it over instead of leaving the row's own
+    // quantity (still whatever it defaulted to) out of sync with it.
+    if (product.quantity > 0) {
+      updateRow(key, { quantity: String(product.quantity) });
+    }
   }
 
   const subtotal = useMemo(
