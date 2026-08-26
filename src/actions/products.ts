@@ -11,8 +11,65 @@ import {
 } from "@/lib/validation/product";
 import { saveProductPhoto, UploadValidationError } from "@/lib/upload";
 import { recordStockMovement } from "@/lib/stock";
+import { PRODUCT_SIDES } from "@/lib/productSide";
+import type { ProductOption } from "@/components/stock/ProductCombobox";
 
 export type ActionState = { error: string } | undefined;
+
+/**
+ * Lets a new part be added on the fly from the Facture/Bon de commande line
+ * item editor, without leaving the page to go create it in Stock first.
+ * Kept deliberately minimal (reference + name + side) — the invoice/BC line
+ * itself already has its own editable unit price, so the catalog product
+ * doesn't need one yet; it can be filled in later from Stock.
+ */
+export async function quickCreateProduct(
+  formData: FormData
+): Promise<{ error: string } | { product: ProductOption }> {
+  await requireSession();
+
+  const reference = String(formData.get("reference") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const sideRaw = String(formData.get("side") ?? "");
+  const side = (PRODUCT_SIDES as readonly string[]).includes(sideRaw)
+    ? (sideRaw as (typeof PRODUCT_SIDES)[number])
+    : null;
+
+  if (!reference) {
+    return { error: "Référence requise" };
+  }
+
+  const existing = await prisma.product.findUnique({ where: { reference } });
+  if (existing) {
+    return { error: "Cette référence existe déjà." };
+  }
+
+  const product = await prisma.product.create({
+    data: {
+      reference,
+      name: name || reference,
+      quantity: 0,
+      rmb: 0,
+      rmbCurrency: "MAD",
+      side,
+    },
+  });
+
+  revalidatePath("/stock");
+
+  return {
+    product: {
+      id: product.id,
+      reference: product.reference,
+      name: product.name,
+      sellingPrice: null,
+      rmb: 0,
+      rmbCurrency: "MAD",
+      quantity: 0,
+      side: product.side,
+    },
+  };
+}
 
 async function resolveTaxonomyIds(
   tx: Pick<typeof prisma, "category" | "brand">,

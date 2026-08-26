@@ -4,23 +4,11 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { formatInvoiceAmount } from "@/lib/format";
 import { CURRENCIES, fromMad, toMad, type CurrencyCode } from "@/lib/currency";
-import type { ProductSideCode } from "@/lib/productSide";
 import type { ActionState } from "@/actions/invoices";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Label } from "@/components/ui/FormControls";
 import { Button } from "@/components/ui/Button";
-import { ProductCombobox } from "@/components/stock/ProductCombobox";
-
-type ProductOption = {
-  id: string;
-  reference: string;
-  name: string;
-  sellingPrice: number | null;
-  rmb: number;
-  rmbCurrency: CurrencyCode;
-  quantity: number;
-  side: ProductSideCode | null;
-};
+import { ProductCombobox, type ProductOption } from "@/components/stock/ProductCombobox";
 
 type CustomerOption = { id: string; name: string };
 
@@ -49,7 +37,7 @@ function selectAllOnFocus(e: React.FocusEvent<HTMLInputElement>) {
 export function InvoiceForm({
   action,
   customers,
-  products,
+  products: initialProducts,
   vatRate,
   rates,
 }: {
@@ -60,6 +48,7 @@ export function InvoiceForm({
   rates: ExchangeRates;
 }) {
   const [state, formAction, isPending] = useActionState(action, undefined);
+  const [products, setProducts] = useState(initialProducts);
   const nextKey = useRef(1);
   const [items, setItems] = useState<LineItem[]>([
     { key: "row-0", productId: null, description: "", quantity: "1", unitPrice: "" },
@@ -99,14 +88,23 @@ export function InvoiceForm({
     }
     const product = products.find((p) => p.id === productId);
     if (!product) return;
-    // sellingPrice is stored in MAD; rmb is in its own currency. Convert
-    // whichever we use as the prefill into the invoice's selected currency.
+    applyProductToRow(key, product);
+  }
+
+  // sellingPrice is stored in MAD; rmb is in its own currency. Convert
+  // whichever we use as the prefill into the invoice's selected currency.
+  function applyProductToRow(key: string, product: ProductOption) {
     const priceInMad = product.sellingPrice ?? toMad(product.rmb, product.rmbCurrency, rates);
     updateRow(key, {
       productId: product.id,
       description: product.name,
       unitPrice: String(Math.round(fromMad(priceInMad, currency, rates) * 100) / 100),
     });
+  }
+
+  function handleProductCreated(key: string, product: ProductOption) {
+    setProducts((list) => [...list, product]);
+    applyProductToRow(key, product);
   }
 
   const subtotal = useMemo(
@@ -227,6 +225,7 @@ export function InvoiceForm({
                       products={products}
                       value={item.productId}
                       onSelect={(id) => onProductSelect(item.key, id ?? "")}
+                      onProductCreated={(product) => handleProductCreated(item.key, product)}
                     />
                   </div>
 

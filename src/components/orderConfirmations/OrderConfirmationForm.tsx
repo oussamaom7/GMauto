@@ -4,23 +4,11 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { formatInvoiceAmount } from "@/lib/format";
 import { CURRENCIES, fromMad, toMad, type CurrencyCode } from "@/lib/currency";
-import type { ProductSideCode } from "@/lib/productSide";
 import type { ActionState } from "@/actions/orderConfirmations";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Label } from "@/components/ui/FormControls";
 import { Button } from "@/components/ui/Button";
-import { ProductCombobox } from "@/components/stock/ProductCombobox";
-
-type ProductOption = {
-  id: string;
-  reference: string;
-  name: string;
-  sellingPrice: number | null;
-  rmb: number;
-  rmbCurrency: CurrencyCode;
-  quantity: number;
-  side: ProductSideCode | null;
-};
+import { ProductCombobox, type ProductOption } from "@/components/stock/ProductCombobox";
 
 type CustomerOption = { id: string; name: string };
 
@@ -50,7 +38,7 @@ function selectAllOnFocus(e: React.FocusEvent<HTMLInputElement>) {
 export function OrderConfirmationForm({
   action,
   customers,
-  products,
+  products: initialProducts,
   vatRate,
   rates,
 }: {
@@ -61,6 +49,7 @@ export function OrderConfirmationForm({
   rates: ExchangeRates;
 }) {
   const [state, formAction, isPending] = useActionState(action, undefined);
+  const [products, setProducts] = useState(initialProducts);
   const nextKey = useRef(1);
   const [items, setItems] = useState<LineItem[]>([
     { key: "row-0", productId: null, reference: "", description: "", quantity: "1", unitPrice: "" },
@@ -100,6 +89,10 @@ export function OrderConfirmationForm({
     }
     const product = products.find((p) => p.id === productId);
     if (!product) return;
+    applyProductToRow(key, product);
+  }
+
+  function applyProductToRow(key: string, product: ProductOption) {
     const priceInMad = product.sellingPrice ?? toMad(product.rmb, product.rmbCurrency, rates);
     updateRow(key, {
       productId: product.id,
@@ -107,6 +100,11 @@ export function OrderConfirmationForm({
       description: product.name,
       unitPrice: String(Math.round(fromMad(priceInMad, currency, rates) * 100) / 100),
     });
+  }
+
+  function handleProductCreated(key: string, product: ProductOption) {
+    setProducts((list) => [...list, product]);
+    applyProductToRow(key, product);
   }
 
   const subtotal = useMemo(
@@ -237,6 +235,7 @@ export function OrderConfirmationForm({
                       products={products}
                       value={item.productId}
                       onSelect={(id) => onProductSelect(item.key, id ?? "")}
+                      onProductCreated={(product) => handleProductCreated(item.key, product)}
                     />
                   </div>
 
