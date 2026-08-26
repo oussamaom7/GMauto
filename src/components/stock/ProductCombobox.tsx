@@ -42,6 +42,7 @@ export function ProductCombobox({
   const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null);
   const [newRmb, setNewRmb] = useState("");
   const [newRmbCurrency, setNewRmbCurrency] = useState<CurrencyCode>("MAD");
+  const [newQuantity, setNewQuantity] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +60,6 @@ export function ProductCombobox({
     function onClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
-        setCreating(false);
       }
     }
     document.addEventListener("mousedown", onClickOutside);
@@ -80,6 +80,7 @@ export function ProductCombobox({
   }
 
   function startCreating() {
+    setOpen(false);
     setCreateError(null);
     setNewRef(query.trim());
     setNewName("");
@@ -89,14 +90,18 @@ export function ProductCombobox({
     setNewPhotoPreview(null);
     setNewRmb("");
     setNewRmbCurrency("MAD");
+    setNewQuantity("");
     setCreating(true);
   }
 
+  function cancelCreating() {
+    if (newPhotoPreview) URL.revokeObjectURL(newPhotoPreview);
+    setNewPhoto(null);
+    setNewPhotoPreview(null);
+    setCreating(false);
+  }
+
   async function handleCreate() {
-    if (!newRef.trim()) {
-      setCreateError("Référence requise");
-      return;
-    }
     setSaving(true);
     setCreateError(null);
     const fd = new FormData();
@@ -105,6 +110,7 @@ export function ProductCombobox({
     if (newSide) fd.set("side", newSide);
     fd.set("rmb", newRmb || "0");
     fd.set("rmbCurrency", newRmbCurrency);
+    fd.set("quantity", newQuantity || "0");
     if (newPhoto) fd.set("photo", newPhoto);
 
     const result = await quickCreateProduct(fd);
@@ -125,183 +131,204 @@ export function ProductCombobox({
     setNewPhotoPreview(null);
     setCreating(false);
     setQuery("");
-    setOpen(false);
   }
 
   return (
     <div className="relative" ref={containerRef}>
-      <div className="relative">
-        <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-        <input
-          type="text"
-          value={open ? query : selected ? productLabel(selected) : ""}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-            setCreating(false);
-          }}
-          onFocus={() => {
-            setOpen(true);
-            setQuery("");
-            setCreating(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              if (filtered.length > 0) selectProduct(filtered[0]);
-            } else if (e.key === "Escape") {
-              setOpen(false);
-              setCreating(false);
-            }
-          }}
-          placeholder="— Ligne libre — ou rechercher un produit"
-          className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-7 pr-7 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-        />
-        {selected && !open && (
-          <button
-            type="button"
-            onClick={() => selectProduct(null)}
-            title="Retirer le produit"
-            aria-label="Retirer le produit"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-red-500"
-          >
-            <X size={14} />
-          </button>
-        )}
+      <div className="flex gap-1.5">
+        <div className="relative min-w-0 flex-1">
+          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <input
+            type="text"
+            value={open ? query : selected ? productLabel(selected) : ""}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => {
+              setOpen(true);
+              setQuery("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (filtered.length > 0) selectProduct(filtered[0]);
+              } else if (e.key === "Escape") {
+                setOpen(false);
+              }
+            }}
+            placeholder="— Ligne libre — ou rechercher"
+            className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-7 pr-7 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          />
+          {selected && !open && (
+            <button
+              type="button"
+              onClick={() => selectProduct(null)}
+              title="Retirer le produit"
+              aria-label="Retirer le produit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-red-500"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => (creating ? cancelCreating() : startCreating())}
+          title="Créer un nouveau produit"
+          aria-label="Créer un nouveau produit"
+          className={`shrink-0 rounded-lg border px-2.5 transition-colors ${
+            creating
+              ? "border-blue-300 bg-blue-50 text-blue-600 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-400"
+              : "border-zinc-300 bg-white text-zinc-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-blue-950/30"
+          }`}
+        >
+          <Plus size={16} />
+        </button>
       </div>
 
       {open && (
         <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-80 overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-          {creating ? (
-            <div className="space-y-2 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                Nouveau produit
-              </p>
-
-              <div className="flex items-center gap-2">
-                {newPhotoPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={newPhotoPreview}
-                    alt=""
-                    className="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600">
-                    <ImagePlus size={18} />
-                  </div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="block min-w-0 flex-1 text-xs text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-zinc-700 hover:file:bg-zinc-200 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200"
-                />
-              </div>
-
-              <input
-                type="text"
-                autoFocus
-                value={newRef}
-                onChange={(e) => setNewRef(e.target.value)}
-                placeholder="Référence *"
-                className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-              />
-
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  step="0.01"
-                  value={newRmb}
-                  onChange={(e) => setNewRmb(e.target.value)}
-                  placeholder="Prix"
-                  className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                />
-                <select
-                  value={newRmbCurrency}
-                  onChange={(e) => setNewRmbCurrency(e.target.value as CurrencyCode)}
-                  className="shrink-0 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                >
-                  {CURRENCIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Désignation (optionnel)"
-                className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-              />
-              <select
-                value={newSide}
-                onChange={(e) => setNewSide(e.target.value as ProductSideCode | "")}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-              >
-                <option value="">Côté (aucun)</option>
-                {PRODUCT_SIDES.map((s) => (
-                  <option key={s} value={s}>
-                    {PRODUCT_SIDE_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-              {createError && <p className="text-xs text-red-600">{createError}</p>}
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleCreate}
-                  disabled={saving}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-                >
-                  {saving && <Loader2 size={13} className="animate-spin" />}
-                  {saving ? "Création..." : "Créer et sélectionner"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCreating(false)}
-                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
+          <button
+            type="button"
+            onClick={() => selectProduct(null)}
+            className="block w-full px-3 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+          >
+            — Ligne libre —
+          </button>
+          {filtered.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-zinc-400">Aucun produit trouvé.</p>
           ) : (
-            <>
+            filtered.map((p) => (
               <button
+                key={p.id}
                 type="button"
-                onClick={() => selectProduct(null)}
-                className="block w-full px-3 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                onClick={() => selectProduct(p)}
+                className="block w-full px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
-                — Ligne libre —
+                {productLabel(p)}
               </button>
-              {filtered.length === 0 ? (
-                <p className="px-3 py-2 text-sm text-zinc-400">Aucun produit trouvé.</p>
-              ) : (
-                filtered.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => selectProduct(p)}
-                    className="block w-full px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  >
-                    {productLabel(p)}
-                  </button>
-                ))
-              )}
-              <button
-                type="button"
-                onClick={startCreating}
-                className="flex w-full items-center gap-1.5 border-t border-zinc-100 px-3 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-zinc-800 dark:hover:bg-blue-950/30"
-              >
-                <Plus size={14} />
-                {query.trim() ? `Créer "${query.trim()}" comme nouveau produit` : "Créer un nouveau produit"}
-              </button>
-            </>
+            ))
           )}
+        </div>
+      )}
+
+      {/* Rendered as a normal block in the page flow (not an absolute-positioned
+          overlay like the search dropdown above) so creating a new product is
+          plainly visible on the page itself, not something hidden inside a list. */}
+      {creating && (
+        <div className="relative z-10 mt-2 space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-3 dark:border-blue-900 dark:bg-blue-950/20">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
+              Nouveau produit
+            </p>
+            <button
+              type="button"
+              onClick={cancelCreating}
+              aria-label="Fermer"
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {newPhotoPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={newPhotoPreview}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+              />
+            ) : (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white text-zinc-300 dark:bg-zinc-900 dark:text-zinc-600">
+                <ImagePlus size={18} />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="block min-w-0 flex-1 text-xs text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-zinc-700 hover:file:bg-zinc-200 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200"
+            />
+          </div>
+
+          <input
+            type="text"
+            autoFocus
+            value={newRef}
+            onChange={(e) => setNewRef(e.target.value)}
+            placeholder="Référence (optionnel)"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          />
+
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={newQuantity}
+              onChange={(e) => setNewQuantity(e.target.value)}
+              placeholder="Quantité"
+              className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+            <input
+              type="number"
+              step="0.01"
+              value={newRmb}
+              onChange={(e) => setNewRmb(e.target.value)}
+              placeholder="Prix"
+              className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+            <select
+              value={newRmbCurrency}
+              onChange={(e) => setNewRmbCurrency(e.target.value as CurrencyCode)}
+              className="shrink-0 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Désignation (optionnel)"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          />
+          <select
+            value={newSide}
+            onChange={(e) => setNewSide(e.target.value as ProductSideCode | "")}
+            className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <option value="">Côté (aucun)</option>
+            {PRODUCT_SIDES.map((s) => (
+              <option key={s} value={s}>
+                {PRODUCT_SIDE_LABELS[s]}
+              </option>
+            ))}
+          </select>
+          {createError && <p className="text-xs text-red-600">{createError}</p>}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={saving}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+            >
+              {saving && <Loader2 size={13} className="animate-spin" />}
+              {saving ? "Création..." : "Créer et sélectionner"}
+            </button>
+            <button
+              type="button"
+              onClick={cancelCreating}
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Annuler
+            </button>
+          </div>
         </div>
       )}
     </div>

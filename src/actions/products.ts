@@ -18,17 +18,33 @@ import type { ProductOption } from "@/components/stock/ProductCombobox";
 export type ActionState = { error: string } | undefined;
 
 /**
+ * Generates a unique placeholder reference for a quick-created product left
+ * without one — the shop can rename it later from Stock once they know the
+ * part's real reference.
+ */
+async function generatePlaceholderReference(): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = `SANS-REF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const existing = await prisma.product.findUnique({ where: { reference: candidate } });
+    if (!existing) return candidate;
+  }
+  throw new Error("Impossible de générer une référence unique");
+}
+
+/**
  * Lets a new part be added on the fly from the Facture/Bon de commande line
  * item editor, without leaving the page to go create it in Stock first.
  * Photo/référence/prix are the fields that matter most here (mirrors the
- * shop's own priorities) — désignation and côté stay optional extras.
+ * shop's own priorities) — désignation and côté stay optional extras, and
+ * référence itself is optional too (a placeholder is generated if left
+ * blank, since the shop sometimes adds a part before knowing its reference).
  */
 export async function quickCreateProduct(
   formData: FormData
 ): Promise<{ error: string } | { product: ProductOption }> {
-  await requireSession();
+  const session = await requireSession();
 
-  const reference = String(formData.get("reference") ?? "").trim();
+  let reference = String(formData.get("reference") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const sideRaw = String(formData.get("side") ?? "");
   const side = (PRODUCT_SIDES as readonly string[]).includes(sideRaw)
@@ -39,14 +55,15 @@ export async function quickCreateProduct(
   const rmbCurrency = (CURRENCIES as readonly string[]).includes(rmbCurrencyRaw)
     ? (rmbCurrencyRaw as (typeof CURRENCIES)[number])
     : "MAD";
+  const quantity = Math.trunc(Number(formData.get("quantity"))) || 0;
 
-  if (!reference) {
-    return { error: "Référence requise" };
-  }
-
-  const existing = await prisma.product.findUnique({ where: { reference } });
-  if (existing) {
-    return { error: "Cette référence existe déjà." };
+  if (reference) {
+    const existing = await prisma.product.findUnique({ where: { reference } });
+    if (existing) {
+      return { error: "Cette référence existe déjà." };
+    }
+  } else {
+    reference = await generatePlaceholderReference();
   }
 
   const photo = formData.get("photo");
@@ -66,16 +83,30 @@ export async function quickCreateProduct(
     }
   }
 
-  const product = await prisma.product.create({
-    data: {
-      reference,
-      name: name || reference,
-      quantity: 0,
-      rmb,
-      rmbCurrency,
-      side,
-      imageUrl,
-    },
+  const product = await prisma.$transaction(async (tx) => {
+    const created = await tx.product.create({
+      data: {
+        reference,
+        name: name || reference,
+        quantity: 0,
+        rmb,
+        rmbCurrency,
+        side,
+        imageUrl,
+      },
+    });
+
+    if (quantity !== 0) {
+      await recordStockMovement(tx, {
+        productId: created.id,
+        type: "ENTREE",
+        delta: quantity,
+        note: "Stock initial",
+        userId: session?.user?.id,
+      });
+    }
+
+    return created;
   });
 
   revalidatePath("/stock");
@@ -88,7 +119,7 @@ export async function quickCreateProduct(
       sellingPrice: null,
       rmb: Number(product.rmb),
       rmbCurrency: product.rmbCurrency,
-      quantity: 0,
+      quantity,
       side: product.side,
     },
   };
