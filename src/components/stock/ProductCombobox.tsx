@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, X, Plus, Loader2 } from "lucide-react";
+import { Search, X, Plus, Loader2, ImagePlus } from "lucide-react";
 import { PRODUCT_SIDES, PRODUCT_SIDE_LABELS, type ProductSideCode } from "@/lib/productSide";
-import type { CurrencyCode } from "@/lib/currency";
+import { CURRENCIES, type CurrencyCode } from "@/lib/currency";
 import { quickCreateProduct } from "@/actions/products";
 
 export type ProductOption = {
@@ -38,11 +38,22 @@ export function ProductCombobox({
   const [newRef, setNewRef] = useState("");
   const [newName, setNewName] = useState("");
   const [newSide, setNewSide] = useState<ProductSideCode | "">("");
+  const [newPhoto, setNewPhoto] = useState<File | null>(null);
+  const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null);
+  const [newRmb, setNewRmb] = useState("");
+  const [newRmbCurrency, setNewRmbCurrency] = useState<CurrencyCode>("MAD");
   const [createError, setCreateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selected = products.find((p) => p.id === value) ?? null;
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (newPhotoPreview) URL.revokeObjectURL(newPhotoPreview);
+    setNewPhoto(file);
+    setNewPhotoPreview(file ? URL.createObjectURL(file) : null);
+  }
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -73,6 +84,11 @@ export function ProductCombobox({
     setNewRef(query.trim());
     setNewName("");
     setNewSide("");
+    if (newPhotoPreview) URL.revokeObjectURL(newPhotoPreview);
+    setNewPhoto(null);
+    setNewPhotoPreview(null);
+    setNewRmb("");
+    setNewRmbCurrency("MAD");
     setCreating(true);
   }
 
@@ -87,6 +103,9 @@ export function ProductCombobox({
     fd.set("reference", newRef.trim());
     fd.set("name", newName.trim());
     if (newSide) fd.set("side", newSide);
+    fd.set("rmb", newRmb || "0");
+    fd.set("rmbCurrency", newRmbCurrency);
+    if (newPhoto) fd.set("photo", newPhoto);
 
     const result = await quickCreateProduct(fd);
     setSaving(false);
@@ -101,6 +120,9 @@ export function ProductCombobox({
     // React state batching: that lookup would run against the parent's
     // pre-update `products` closure and silently miss the brand new product.
     onProductCreated(result.product);
+    if (newPhotoPreview) URL.revokeObjectURL(newPhotoPreview);
+    setNewPhoto(null);
+    setNewPhotoPreview(null);
     setCreating(false);
     setQuery("");
     setOpen(false);
@@ -155,6 +177,28 @@ export function ProductCombobox({
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Nouveau produit
               </p>
+
+              <div className="flex items-center gap-2">
+                {newPhotoPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={newPhotoPreview}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600">
+                    <ImagePlus size={18} />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="block min-w-0 flex-1 text-xs text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-zinc-700 hover:file:bg-zinc-200 dark:text-zinc-400 dark:file:bg-zinc-800 dark:file:text-zinc-200"
+                />
+              </div>
+
               <input
                 type="text"
                 autoFocus
@@ -163,6 +207,29 @@ export function ProductCombobox({
                 placeholder="Référence *"
                 className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
               />
+
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={newRmb}
+                  onChange={(e) => setNewRmb(e.target.value)}
+                  placeholder="Prix"
+                  className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                />
+                <select
+                  value={newRmbCurrency}
+                  onChange={(e) => setNewRmbCurrency(e.target.value as CurrencyCode)}
+                  className="shrink-0 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <input
                 type="text"
                 value={newName}

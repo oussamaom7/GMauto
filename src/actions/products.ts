@@ -12,6 +12,7 @@ import {
 import { saveProductPhoto, UploadValidationError } from "@/lib/upload";
 import { recordStockMovement } from "@/lib/stock";
 import { PRODUCT_SIDES } from "@/lib/productSide";
+import { CURRENCIES } from "@/lib/currency";
 import type { ProductOption } from "@/components/stock/ProductCombobox";
 
 export type ActionState = { error: string } | undefined;
@@ -19,9 +20,8 @@ export type ActionState = { error: string } | undefined;
 /**
  * Lets a new part be added on the fly from the Facture/Bon de commande line
  * item editor, without leaving the page to go create it in Stock first.
- * Kept deliberately minimal (reference + name + side) — the invoice/BC line
- * itself already has its own editable unit price, so the catalog product
- * doesn't need one yet; it can be filled in later from Stock.
+ * Photo/référence/prix are the fields that matter most here (mirrors the
+ * shop's own priorities) — désignation and côté stay optional extras.
  */
 export async function quickCreateProduct(
   formData: FormData
@@ -34,6 +34,11 @@ export async function quickCreateProduct(
   const side = (PRODUCT_SIDES as readonly string[]).includes(sideRaw)
     ? (sideRaw as (typeof PRODUCT_SIDES)[number])
     : null;
+  const rmb = Number(formData.get("rmb")) || 0;
+  const rmbCurrencyRaw = String(formData.get("rmbCurrency") ?? "MAD");
+  const rmbCurrency = (CURRENCIES as readonly string[]).includes(rmbCurrencyRaw)
+    ? (rmbCurrencyRaw as (typeof CURRENCIES)[number])
+    : "MAD";
 
   if (!reference) {
     return { error: "Référence requise" };
@@ -44,14 +49,32 @@ export async function quickCreateProduct(
     return { error: "Cette référence existe déjà." };
   }
 
+  const photo = formData.get("photo");
+  let imageUrl: string | undefined;
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      imageUrl = await saveProductPhoto(photo);
+    } catch (err) {
+      if (err instanceof UploadValidationError) {
+        return { error: err.message };
+      }
+      console.error("Product photo upload failed:", err);
+      return {
+        error:
+          "Échec de l'upload. Si le problème persiste en production, vérifiez qu'un Vercel Blob store est bien connecté au projet.",
+      };
+    }
+  }
+
   const product = await prisma.product.create({
     data: {
       reference,
       name: name || reference,
       quantity: 0,
-      rmb: 0,
-      rmbCurrency: "MAD",
+      rmb,
+      rmbCurrency,
       side,
+      imageUrl,
     },
   });
 
@@ -63,8 +86,8 @@ export async function quickCreateProduct(
       reference: product.reference,
       name: product.name,
       sellingPrice: null,
-      rmb: 0,
-      rmbCurrency: "MAD",
+      rmb: Number(product.rmb),
+      rmbCurrency: product.rmbCurrency,
       quantity: 0,
       side: product.side,
     },
