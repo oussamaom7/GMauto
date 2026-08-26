@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Search, X, Plus, Loader2, ImagePlus } from "lucide-react";
 import { PRODUCT_SIDES, PRODUCT_SIDE_LABELS, type ProductSideCode } from "@/lib/productSide";
 import { CURRENCIES, type CurrencyCode } from "@/lib/currency";
+import { formatCurrency } from "@/lib/format";
 import { quickCreateProduct } from "@/actions/products";
 
 export type ProductOption = {
@@ -213,11 +214,12 @@ export function ProductCombobox({
         </div>
       )}
 
-      {/* Rendered as a normal block in the page flow (not an absolute-positioned
-          overlay like the search dropdown above) so creating a new product is
-          plainly visible on the page itself, not something hidden inside a list. */}
+      {/* Floats as a wide overlay (not constrained to this field's own narrow
+          grid column, and not nested inside the search results list) so
+          creating a new product is clearly visible and comfortable to fill
+          in, instead of being squeezed into a ~120px-wide column. */}
       {creating && (
-        <div className="relative z-10 mt-2 space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-3 dark:border-blue-900 dark:bg-blue-950/20">
+        <div className="absolute left-0 top-full z-30 mt-2 w-[21rem] max-w-[92vw] space-y-3 rounded-xl border border-blue-200 bg-white p-4 shadow-xl dark:border-blue-900 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
               Nouveau produit
@@ -228,21 +230,21 @@ export function ProductCombobox({
               aria-label="Fermer"
               className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {newPhotoPreview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={newPhotoPreview}
                 alt=""
-                className="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+                className="h-14 w-14 shrink-0 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
               />
             ) : (
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white text-zinc-300 dark:bg-zinc-900 dark:text-zinc-600">
-                <ImagePlus size={18} />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600">
+                <ImagePlus size={20} />
               </div>
             )}
             <input
@@ -259,16 +261,16 @@ export function ProductCombobox({
             value={newRef}
             onChange={(e) => setNewRef(e.target.value)}
             placeholder="Référence (optionnel)"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />
 
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <input
               type="number"
               value={newQuantity}
               onChange={(e) => setNewQuantity(e.target.value)}
               placeholder="Quantité"
-              className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="min-w-0 rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             />
             <input
               type="number"
@@ -276,12 +278,12 @@ export function ProductCombobox({
               value={newRmb}
               onChange={(e) => setNewRmb(e.target.value)}
               placeholder="Prix"
-              className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="min-w-0 rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             />
             <select
               value={newRmbCurrency}
               onChange={(e) => setNewRmbCurrency(e.target.value as CurrencyCode)}
-              className="shrink-0 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="min-w-0 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             >
               {CURRENCIES.map((c) => (
                 <option key={c} value={c}>
@@ -290,33 +292,41 @@ export function ProductCombobox({
               ))}
             </select>
           </div>
+          <p className="-mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Total :{" "}
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              {formatCurrency((Number(newQuantity) || 0) * (Number(newRmb) || 0), newRmbCurrency)}
+            </span>
+          </p>
 
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Désignation (optionnel)"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <select
-            value={newSide}
-            onChange={(e) => setNewSide(e.target.value as ProductSideCode | "")}
-            className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            <option value="">Côté (aucun)</option>
-            {PRODUCT_SIDES.map((s) => (
-              <option key={s} value={s}>
-                {PRODUCT_SIDE_LABELS[s]}
-              </option>
-            ))}
-          </select>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Désignation (optionnel)"
+              className="min-w-0 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+            <select
+              value={newSide}
+              onChange={(e) => setNewSide(e.target.value as ProductSideCode | "")}
+              className="min-w-0 rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            >
+              <option value="">Côté (aucun)</option>
+              {PRODUCT_SIDES.map((s) => (
+                <option key={s} value={s}>
+                  {PRODUCT_SIDE_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </div>
           {createError && <p className="text-xs text-red-600">{createError}</p>}
           <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={handleCreate}
               disabled={saving}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {saving && <Loader2 size={13} className="animate-spin" />}
               {saving ? "Création..." : "Créer et sélectionner"}
@@ -324,7 +334,7 @@ export function ProductCombobox({
             <button
               type="button"
               onClick={cancelCreating}
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               Annuler
             </button>
