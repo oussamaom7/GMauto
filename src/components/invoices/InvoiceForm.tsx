@@ -142,6 +142,10 @@ export function InvoiceForm({
       items.reduce((sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0), 0),
     [items]
   );
+  const totalPieces = useMemo(
+    () => items.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0),
+    [items]
+  );
   const vatAmount = applyVat ? subtotal * (vatRate / 100) : 0;
   const total = subtotal + vatAmount;
   const remaining = Math.max(total - (Number(paidAmount) || 0), 0);
@@ -355,6 +359,10 @@ export function InvoiceForm({
       <div className="flex justify-end">
         <div className="w-full max-w-xs space-y-3">
           <Card className="space-y-2.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-zinc-500">Nombre de pièces</span>
+              <span className="tabular-nums">{totalPieces}</span>
+            </div>
             <div className="flex justify-between text-sm">
               <span className="text-zinc-500">Sous-total</span>
               <span className="tabular-nums">{formatInvoiceAmount(subtotal, currency)}</span>

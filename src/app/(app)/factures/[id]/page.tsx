@@ -107,6 +107,12 @@ export default async function FactureDetailPage({
       <div className="flex justify-end">
         <Card className="w-full max-w-xs space-y-2.5">
           <div className="flex justify-between text-sm">
+            <span className="text-zinc-500">Nombre de pièces</span>
+            <span className="tabular-nums">
+              {invoice.items.reduce((sum, item) => sum + item.quantity, 0)}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
             <span className="text-zinc-500">Sous-total</span>
             <span className="tabular-nums">{formatInvoiceAmount(invoice.subtotal, invoice.currency)}</span>
           </div>

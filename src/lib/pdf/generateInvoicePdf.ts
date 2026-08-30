@@ -173,6 +173,8 @@ export async function generateInvoicePdf(
       y += bold ? 20 : 16;
     }
 
+    const totalPieces = invoice.items.reduce((sum, item) => sum + item.quantity, 0);
+    totalLine("NOMBRE DE PIÈCES", String(totalPieces));
     totalLine("SOUS-TOTAL", formatInvoiceAmount(invoice.subtotal, invoice.currency));
     totalLine(`TVA (${vatRate}%)`, formatInvoiceAmount(invoice.vatAmount, invoice.currency));
     doc.moveTo(totalsX, y).lineTo(totalsX + totalsWidth, y).strokeColor(BORDER_COLOR).stroke();
