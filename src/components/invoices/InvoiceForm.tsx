@@ -26,6 +26,15 @@ type LineItem = {
 
 type ExchangeRates = { eurToMad: number; usdToMad: number; cnyToMad: number };
 
+export type InvoiceFormInitialValues = {
+  customerId: string;
+  date: string;
+  currency: CurrencyCode;
+  applyVat: boolean;
+  paidAmount: number;
+  items: { productId: string | null; description: string; quantity: number; unitPrice: number }[];
+};
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -40,25 +49,40 @@ export function InvoiceForm({
   products: initialProducts,
   vatRate,
   rates,
+  mode = "create",
+  initialValues,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   customers: CustomerOption[];
   products: ProductOption[];
   vatRate: number;
   rates: ExchangeRates;
+  mode?: "create" | "edit";
+  initialValues?: InvoiceFormInitialValues;
 }) {
   const [state, formAction, isPending] = useActionState(action, undefined);
   const [products, setProducts] = useState(initialProducts);
-  const nextKey = useRef(1);
-  const [items, setItems] = useState<LineItem[]>([
-    { key: "row-0", productId: null, description: "", quantity: "1", unitPrice: "" },
-  ]);
-  const [paidAmount, setPaidAmount] = useState("0");
+  const nextKey = useRef(initialValues?.items.length ?? 1);
+  const [items, setItems] = useState<LineItem[]>(() =>
+    initialValues && initialValues.items.length > 0
+      ? initialValues.items.map((item, i) => ({
+          key: `row-${i}`,
+          productId: item.productId,
+          description: item.description,
+          quantity: String(item.quantity),
+          unitPrice: String(item.unitPrice),
+        }))
+      : [{ key: "row-0", productId: null, description: "", quantity: "1", unitPrice: "" }]
+  );
+  const [paidAmount, setPaidAmount] = useState(String(initialValues?.paidAmount ?? 0));
   const [clientMode, setClientMode] = useState<"existing" | "new">(
     customers.length > 0 ? "existing" : "new"
   );
-  const [applyVat, setApplyVat] = useState(true);
-  const [currency, setCurrency] = useState<CurrencyCode>("MAD");
+  const [applyVat, setApplyVat] = useState(initialValues?.applyVat ?? true);
+  const [currency, setCurrency] = useState<CurrencyCode>(initialValues?.currency ?? "MAD");
+  // Changing currency after payments exist would silently reinterpret money
+  // already recorded in the old currency — lock it once anything is paid.
+  const currencyLocked = mode === "edit" && (initialValues?.paidAmount ?? 0) > 0;
 
   function addRow() {
     setItems((rows) => [
@@ -170,7 +194,7 @@ export function InvoiceForm({
 
         {clientMode === "existing" ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select name="customerId" required>
+            <Select name="customerId" required defaultValue={initialValues?.customerId}>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -178,7 +202,13 @@ export function InvoiceForm({
               ))}
             </Select>
             <Field label="Date" htmlFor="date">
-              <Input type="date" id="date" name="date" required defaultValue={todayISO()} />
+              <Input
+                type="date"
+                id="date"
+                name="date"
+                required
+                defaultValue={initialValues?.date ?? todayISO()}
+              />
             </Field>
           </div>
         ) : (
@@ -187,18 +217,36 @@ export function InvoiceForm({
             <Input name="newCustomerPhone" placeholder="Téléphone" />
             <Input name="newCustomerEmail" type="email" placeholder="Email" />
             <Field label="Date" htmlFor="date">
-              <Input type="date" id="date" name="date" required defaultValue={todayISO()} />
+              <Input
+                type="date"
+                id="date"
+                name="date"
+                required
+                defaultValue={initialValues?.date ?? todayISO()}
+              />
             </Field>
           </div>
         )}
 
         <div className="mt-4">
-          <Field label="Devise de la facture" htmlFor="currency">
+          <Field
+            label="Devise de la facture"
+            htmlFor="currency"
+            hint={
+              currencyLocked
+                ? "Non modifiable : des paiements ont déjà été enregistrés dans cette devise."
+                : undefined
+            }
+          >
+            {/* A hidden input always carries the real value so the currency
+                is still submitted correctly even while the visible select is
+                disabled (disabled form controls are dropped from FormData). */}
+            <input type="hidden" name="currency" value={currency} />
             <Select
               id="currency"
-              name="currency"
               value={currency}
               onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+              disabled={currencyLocked}
               className="max-w-[160px]"
             >
               {CURRENCIES.map((c) => (
@@ -332,18 +380,29 @@ export function InvoiceForm({
               <Label htmlFor="paidAmount" className="mb-0 text-zinc-500">
                 Payé
               </Label>
-              <input
-                id="paidAmount"
-                type="number"
-                step="0.01"
-                name="paidAmount"
-                min={0}
-                value={paidAmount}
-                onChange={(e) => setPaidAmount(e.target.value)}
-                onFocus={selectAllOnFocus}
-                className="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-900"
-              />
+              {mode === "create" ? (
+                <input
+                  id="paidAmount"
+                  type="number"
+                  step="0.01"
+                  name="paidAmount"
+                  min={0}
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                  onFocus={selectAllOnFocus}
+                  className="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                />
+              ) : (
+                <span className="tabular-nums text-zinc-600 dark:text-zinc-400">
+                  {formatInvoiceAmount(Number(paidAmount), currency)}
+                </span>
+              )}
             </div>
+            {mode === "edit" && (
+              <p className="-mt-1.5 text-right text-xs text-zinc-400">
+                Utilisez « Enregistrer un paiement » pour changer ce montant.
+              </p>
+            )}
             <div className="flex justify-between text-base font-semibold">
               <span>Solde à payer</span>
               <span className="tabular-nums">{formatInvoiceAmount(remaining, currency)}</span>
@@ -351,7 +410,13 @@ export function InvoiceForm({
           </Card>
 
           <Button type="submit" disabled={isPending} className="w-full">
-            {isPending ? "Génération..." : "Générer la facture"}
+            {mode === "edit"
+              ? isPending
+                ? "Enregistrement..."
+                : "Enregistrer les modifications"
+              : isPending
+                ? "Génération..."
+                : "Générer la facture"}
           </Button>
         </div>
       </div>

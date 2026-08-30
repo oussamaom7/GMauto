@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { FileDown, ArrowLeft, CircleAlert } from "lucide-react";
+import { FileDown, ArrowLeft, CircleAlert, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/invoices/StatusBadge";
 import { RecordPaymentForm } from "@/components/invoices/RecordPaymentForm";
@@ -44,6 +44,15 @@ export default async function FactureDetailPage({
             <Button href="/factures" variant="secondary" icon={<ArrowLeft size={16} />}>
               Retour
             </Button>
+            {!isVoided && (
+              <Button
+                href={`/factures/${invoice.id}/modifier`}
+                variant="secondary"
+                icon={<Pencil size={16} />}
+              >
+                Modifier
+              </Button>
+            )}
             <Button href={`/factures/${invoice.id}/pdf`} target="_blank" icon={<FileDown size={16} />}>
               Télécharger le PDF
             </Button>

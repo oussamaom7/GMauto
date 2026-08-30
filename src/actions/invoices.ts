@@ -130,6 +130,147 @@ export async function createInvoice(
   redirect(`/factures/${result.invoiceId}`);
 }
 
+export async function updateInvoice(
+  id: string,
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const session = await requireSession();
+
+  let itemsRaw: unknown;
+  try {
+    itemsRaw = JSON.parse(String(formData.get("itemsJson") ?? "[]"));
+  } catch {
+    return { error: "Lignes de facture invalides" };
+  }
+
+  const parsed = createInvoiceSchema.safeParse({
+    customerId: formData.get("customerId") || undefined,
+    newCustomerName: formData.get("newCustomerName") || undefined,
+    newCustomerPhone: formData.get("newCustomerPhone") || undefined,
+    newCustomerEmail: formData.get("newCustomerEmail") || undefined,
+    date: formData.get("date"),
+    currency: formData.get("currency") || undefined,
+    applyVat: formData.get("applyVat"),
+    items: itemsRaw,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
+  }
+
+  const settings = await getSettings();
+  const exchangeRate = toMad(1, parsed.data.currency, settings);
+  const vatRate = parsed.data.applyVat ? Number(settings.defaultVatRate) : 0;
+  const subtotal = parsed.data.items.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0
+  );
+  const vatAmount = subtotal * (vatRate / 100);
+  const total = subtotal + vatAmount;
+
+  let customerId: string;
+  try {
+    customerId = await prisma.$transaction(async (tx) => {
+      const existing = await tx.invoice.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+      if (!existing) throw new Error("Facture introuvable");
+      if (existing.status === "ANNULEE") {
+        throw new Error("Cette facture est annulée et ne peut plus être modifiée.");
+      }
+
+      // Restock everything the current version of the invoice decremented,
+      // then re-deduct fresh for the edited items below — simpler and more
+      // robust than diffing old vs new line-by-line, and it keeps a full,
+      // honest movement history instead of silently rewriting it.
+      for (const item of existing.items) {
+        if (item.productId) {
+          await recordStockMovement(tx, {
+            productId: item.productId,
+            type: "ENTREE",
+            delta: item.quantity,
+            reference: `Modification ${existing.number}`,
+            userId: session?.user?.id,
+          });
+        }
+      }
+
+      const customerId = parsed.data.customerId
+        ? parsed.data.customerId
+        : (
+            await tx.customer.create({
+              data: {
+                name: parsed.data.newCustomerName!,
+                phone: parsed.data.newCustomerPhone || null,
+                email: parsed.data.newCustomerEmail || null,
+              },
+            })
+          ).id;
+
+      await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
+
+      // Payments already recorded are untouched by editing line items — only
+      // the balance owed is recomputed against the new total.
+      const paidAmount = Number(existing.paidAmount);
+      const remainingAmount = Math.max(total - paidAmount, 0);
+      const status = computeStatus(total, paidAmount);
+
+      const updated = await tx.invoice.update({
+        where: { id },
+        data: {
+          customerId,
+          date: new Date(parsed.data.date),
+          currency: parsed.data.currency,
+          exchangeRate,
+          subtotal,
+          vatRate,
+          vatAmount,
+          total,
+          remainingAmount,
+          status,
+          items: {
+            create: parsed.data.items.map((item) => ({
+              productId: item.productId,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              total: item.quantity * item.unitPrice,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      for (const item of updated.items) {
+        if (item.productId) {
+          await recordStockMovement(tx, {
+            productId: item.productId,
+            type: "SORTIE",
+            delta: -item.quantity,
+            reference: updated.number,
+            invoiceId: updated.id,
+            userId: session?.user?.id,
+          });
+        }
+      }
+
+      return customerId;
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erreur inconnue" };
+  }
+
+  revalidatePath("/factures");
+  revalidatePath(`/factures/${id}`);
+  revalidatePath("/stock");
+  revalidatePath("/stock/mouvements");
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${customerId}`);
+  redirect(`/factures/${id}`);
+}
+
 export async function recordPayment(
   _prevState: ActionState,
   formData: FormData
