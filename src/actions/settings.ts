@@ -44,7 +44,7 @@ export async function updateSettings(
       console.error("Logo upload failed:", err);
       return {
         error:
-          "Échec de l'upload. Si le problème persiste en production, vérifiez qu'un Vercel Blob store est bien connecté au projet.",
+          "Échec de l'upload. Si le problème persiste en production, vérifiez que SUPABASE_SERVICE_ROLE_KEY est bien configurée et que le bucket \"uploads\" existe.",
       };
     }
   }

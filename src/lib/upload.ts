@@ -2,12 +2,13 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import sharp from "sharp";
-import { put } from "@vercel/blob";
+import { createClient } from "@supabase/supabase-js";
 
 const UPLOAD_ROOT = path.join(process.cwd(), "storage", "uploads");
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB, before compression
 const MAX_DIMENSION = 1600; // px, longest side — plenty for any view/PDF use in this app
 const JPEG_QUALITY = 80;
+const SUPABASE_BUCKET = "uploads";
 
 export class UploadValidationError extends Error {}
 
@@ -76,14 +77,24 @@ async function compressImage(buffer: Buffer): Promise<Buffer> {
 }
 
 /**
- * Storage backend is picked at runtime: Vercel Blob when a store is attached,
+ * Server-only Supabase client using the service role key, which bypasses
+ * Storage RLS — safe here since every caller is already an authenticated
+ * Server Action (see requireSession() at each call site), and this key is
+ * never sent to the browser. Returns null when unconfigured so local dev
+ * can fall back to disk without needing Supabase credentials.
+ */
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return null;
+  return createClient(url, serviceKey);
+}
+
+/**
+ * Storage backend is picked at runtime: Supabase Storage when configured,
  * local disk otherwise — so local dev needs no cloud credentials, and
- * production on Vercel (whose filesystem is ephemeral) gets persistent
- * storage automatically. A store can be attached either via a static
- * BLOB_READ_WRITE_TOKEN or via Vercel's newer OIDC-based connection
- * (BLOB_STORE_ID + an auto-injected VERCEL_OIDC_TOKEN, no static secret) —
- * `put()` itself already knows how to use either, we just need to attempt
- * it whenever either one is present instead of only checking for the token.
+ * production (whose filesystem is ephemeral on Vercel) gets persistent,
+ * publicly-servable storage automatically.
  */
 async function saveUploadedFile(file: File, subfolder: string): Promise<string> {
   if (file.size > MAX_FILE_SIZE) {
@@ -97,19 +108,23 @@ async function saveUploadedFile(file: File, subfolder: string): Promise<string> 
 
   const buffer = await compressImage(rawBuffer);
   const filename = `${crypto.randomUUID()}.jpg`;
+  const objectPath = `${subfolder}/${filename}`;
 
-  if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
-    const blob = await put(`${subfolder}/${filename}`, buffer, {
-      access: "public",
-      contentType: "image/jpeg",
-    });
-    return blob.url;
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    const { error } = await supabase.storage
+      .from(SUPABASE_BUCKET)
+      .upload(objectPath, buffer, { contentType: "image/jpeg" });
+    if (error) {
+      throw new Error(`Supabase Storage upload failed: ${error.message}`);
+    }
+    return supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(objectPath).data.publicUrl;
   }
 
   const dir = path.join(UPLOAD_ROOT, subfolder);
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, filename), buffer);
-  return `${subfolder}/${filename}`;
+  return objectPath;
 }
 
 export function saveProductPhoto(file: File): Promise<string> {
