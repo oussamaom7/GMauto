@@ -1,17 +1,13 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import sharp from "sharp";
 import { put } from "@vercel/blob";
 
 const UPLOAD_ROOT = path.join(process.cwd(), "storage", "uploads");
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-const CONTENT_TYPE_BY_EXT: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-};
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB, before compression
+const MAX_DIMENSION = 1600; // px, longest side — plenty for any view/PDF use in this app
+const JPEG_QUALITY = 80;
 
 export class UploadValidationError extends Error {}
 
@@ -56,6 +52,30 @@ function detectImageExtension(buffer: Buffer): string | null {
 }
 
 /**
+ * Re-encodes every upload as a resized JPEG, regardless of the original
+ * format. A phone-camera photo (often 3-8MB) shrinks to well under 500KB —
+ * this app never displays a photo bigger than a small thumbnail (Stock
+ * table, PDFs), so nothing is lost, and it matters a lot on a storage-capped
+ * plan (Vercel Blob's Hobby tier is 10GB total).
+ */
+async function compressImage(buffer: Buffer): Promise<Buffer> {
+  try {
+    return await sharp(buffer)
+      .rotate() // bake in EXIF orientation before it gets stripped below
+      .resize({
+        width: MAX_DIMENSION,
+        height: MAX_DIMENSION,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: JPEG_QUALITY })
+      .toBuffer();
+  } catch {
+    throw new UploadValidationError("Image invalide ou corrompue.");
+  }
+}
+
+/**
  * Storage backend is picked at runtime: Vercel Blob when a store is attached,
  * local disk otherwise — so local dev needs no cloud credentials, and
  * production on Vercel (whose filesystem is ephemeral) gets persistent
@@ -70,18 +90,18 @@ async function saveUploadedFile(file: File, subfolder: string): Promise<string> 
     throw new UploadValidationError("Fichier trop volumineux (5 Mo maximum).");
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = detectImageExtension(buffer);
-  if (!ext) {
+  const rawBuffer = Buffer.from(await file.arrayBuffer());
+  if (!detectImageExtension(rawBuffer)) {
     throw new UploadValidationError("Format d'image non supporté (JPEG, PNG, WEBP ou GIF requis).");
   }
 
-  const filename = `${crypto.randomUUID()}${ext}`;
+  const buffer = await compressImage(rawBuffer);
+  const filename = `${crypto.randomUUID()}.jpg`;
 
   if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
     const blob = await put(`${subfolder}/${filename}`, buffer, {
       access: "public",
-      contentType: CONTENT_TYPE_BY_EXT[ext],
+      contentType: "image/jpeg",
     });
     return blob.url;
   }
