@@ -53,7 +53,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: key, mode: "insensitive" } },
+        });
         if (!user) {
           recordFailedAttempt(key);
           return null;
