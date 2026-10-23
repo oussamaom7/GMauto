@@ -2,10 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { InvoiceStatus } from "@prisma/client";
+import type { InvoiceStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/authz";
-import { createInvoiceSchema, recordPaymentSchema } from "@/lib/validation/invoice";
+import {
+  createInvoiceSchema,
+  recordPaymentSchema,
+  updatePaymentSchema,
+} from "@/lib/validation/invoice";
 import { getNextInvoiceNumber } from "@/lib/invoiceNumbering";
 import { getSettings } from "@/lib/settings";
 import { recordStockMovement } from "@/lib/stock";
@@ -328,6 +332,106 @@ export async function recordPayment(
   revalidatePath(`/factures/${parsed.data.invoiceId}`);
   revalidatePath("/clients");
   revalidatePath(`/clients/${customerId}`);
+}
+
+// paidAmount can include money entered at invoice creation that has no
+// Payment row, so it's adjusted by the delta of the edited payment rather
+// than recomputed as the sum of the payments.
+async function applyPaidDelta(
+  tx: Prisma.TransactionClient,
+  invoiceId: string,
+  delta: number
+) {
+  const invoice = await tx.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) throw new Error("Facture introuvable");
+  if (invoice.status === "ANNULEE") {
+    throw new Error("Cette facture est annulée, ses paiements ne peuvent plus être modifiés.");
+  }
+
+  const newPaid = Math.max(Number(invoice.paidAmount) + delta, 0);
+  const total = Number(invoice.total);
+  await tx.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      paidAmount: newPaid,
+      remainingAmount: Math.max(total - newPaid, 0),
+      status: computeStatus(total, newPaid),
+    },
+  });
+
+  return invoice.customerId;
+}
+
+export async function updatePayment(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireSession();
+
+  const parsed = updatePaymentSchema.safeParse({
+    paymentId: formData.get("paymentId"),
+    amount: formData.get("amount"),
+    date: formData.get("date"),
+    method: formData.get("method") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
+  }
+
+  let result: { invoiceId: string; customerId: string };
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.findUnique({
+        where: { id: parsed.data.paymentId },
+      });
+      if (!payment) throw new Error("Paiement introuvable");
+
+      const customerId = await applyPaidDelta(
+        tx,
+        payment.invoiceId,
+        parsed.data.amount - Number(payment.amount)
+      );
+
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          amount: parsed.data.amount,
+          date: new Date(parsed.data.date),
+          method: parsed.data.method || null,
+        },
+      });
+
+      return { invoiceId: payment.invoiceId, customerId };
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erreur inconnue" };
+  }
+
+  revalidatePath("/factures");
+  revalidatePath(`/factures/${result.invoiceId}`);
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${result.customerId}`);
+}
+
+export async function deletePayment(paymentId: string) {
+  await requireSession();
+
+  const result = await prisma.$transaction(async (tx) => {
+    const payment = await tx.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) return null;
+
+    const customerId = await applyPaidDelta(tx, payment.invoiceId, -Number(payment.amount));
+    await tx.payment.delete({ where: { id: paymentId } });
+
+    return { invoiceId: payment.invoiceId, customerId };
+  });
+
+  if (!result) return;
+  revalidatePath("/factures");
+  revalidatePath(`/factures/${result.invoiceId}`);
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${result.customerId}`);
 }
 
 export async function voidInvoice(invoiceId: string) {

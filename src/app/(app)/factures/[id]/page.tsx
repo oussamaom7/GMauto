@@ -3,6 +3,7 @@ import { FileDown, ArrowLeft, CircleAlert, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/invoices/StatusBadge";
 import { RecordPaymentForm } from "@/components/invoices/RecordPaymentForm";
+import { PaymentList } from "@/components/invoices/PaymentList";
 import { VoidInvoiceButton } from "@/components/invoices/VoidInvoiceButton";
 import { DeleteInvoiceButton } from "@/components/invoices/DeleteInvoiceButton";
 import { formatDate, formatInvoiceAmount } from "@/lib/format";
@@ -149,19 +150,16 @@ export default async function FactureDetailPage({
       )}
 
       {invoice.payments.length > 0 && (
-        <div>
-          <h2 className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-            Paiements
-          </h2>
-          <ul className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-            {invoice.payments.map((p) => (
-              <li key={p.id}>
-                {formatDate(p.date)} — {formatInvoiceAmount(p.amount, invoice.currency)}
-                {p.method ? ` (${p.method})` : ""}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PaymentList
+          payments={invoice.payments.map((p) => ({
+            id: p.id,
+            amount: Number(p.amount),
+            date: p.date.toISOString(),
+            method: p.method,
+          }))}
+          currency={invoice.currency}
+          editable={!isVoided}
+        />
       )}
 
       {canPay && <RecordPaymentForm invoiceId={invoice.id} />}

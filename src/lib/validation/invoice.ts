@@ -31,3 +31,10 @@ export const recordPaymentSchema = z.object({
   method: z.string().trim().optional(),
   note: z.string().trim().optional(),
 });
+
+export const updatePaymentSchema = z.object({
+  paymentId: z.string().min(1),
+  amount: z.coerce.number().positive("Montant invalide"),
+  date: z.string().min(1, "Date requise"),
+  method: z.string().trim().optional(),
+});
