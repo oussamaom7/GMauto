@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/invoices/StatusBadge";
 import { RecordPaymentForm } from "@/components/invoices/RecordPaymentForm";
 import { PaymentList } from "@/components/invoices/PaymentList";
 import { VoidInvoiceButton } from "@/components/invoices/VoidInvoiceButton";
+import { RestoreInvoiceButton } from "@/components/invoices/RestoreInvoiceButton";
 import { DeleteInvoiceButton } from "@/components/invoices/DeleteInvoiceButton";
 import { formatDate, formatInvoiceAmount } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -158,14 +159,18 @@ export default async function FactureDetailPage({
             method: p.method,
           }))}
           currency={invoice.currency}
-          editable={!isVoided}
+          editable
         />
       )}
 
       {canPay && <RecordPaymentForm invoiceId={invoice.id} />}
 
       <div className="flex flex-wrap gap-2">
-        {!isVoided && <VoidInvoiceButton invoiceId={invoice.id} />}
+        {isVoided ? (
+          <RestoreInvoiceButton invoiceId={invoice.id} />
+        ) : (
+          <VoidInvoiceButton invoiceId={invoice.id} />
+        )}
         <DeleteInvoiceButton
           invoiceId={invoice.id}
           invoiceNumber={invoice.number}

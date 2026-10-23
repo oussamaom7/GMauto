@@ -344,9 +344,6 @@ async function applyPaidDelta(
 ) {
   const invoice = await tx.invoice.findUnique({ where: { id: invoiceId } });
   if (!invoice) throw new Error("Facture introuvable");
-  if (invoice.status === "ANNULEE") {
-    throw new Error("Cette facture est annulée, ses paiements ne peuvent plus être modifiés.");
-  }
 
   const newPaid = Math.max(Number(invoice.paidAmount) + delta, 0);
   const total = Number(invoice.total);
@@ -355,7 +352,8 @@ async function applyPaidDelta(
     data: {
       paidAmount: newPaid,
       remainingAmount: Math.max(total - newPaid, 0),
-      status: computeStatus(total, newPaid),
+      // A voided invoice stays voided; restoreInvoice recomputes the status.
+      status: invoice.status === "ANNULEE" ? "ANNULEE" : computeStatus(total, newPaid),
     },
   });
 
@@ -462,6 +460,48 @@ export async function voidInvoice(invoiceId: string) {
     await tx.invoice.update({
       where: { id: invoiceId },
       data: { status: "ANNULEE" },
+    });
+
+    return invoice.customerId;
+  });
+
+  revalidatePath("/factures");
+  revalidatePath(`/factures/${invoiceId}`);
+  revalidatePath("/stock");
+  revalidatePath("/stock/mouvements");
+  revalidatePath("/clients");
+  if (customerId) revalidatePath(`/clients/${customerId}`);
+}
+
+export async function restoreInvoice(invoiceId: string) {
+  const session = await requireSession();
+
+  const customerId = await prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { items: true },
+    });
+    if (!invoice || invoice.status !== "ANNULEE") {
+      return invoice?.customerId ?? null;
+    }
+
+    // Undo voidInvoice: take the parts back out of stock.
+    for (const item of invoice.items) {
+      if (item.productId) {
+        await recordStockMovement(tx, {
+          productId: item.productId,
+          type: "SORTIE",
+          delta: -item.quantity,
+          reference: `Restauration ${invoice.number}`,
+          invoiceId: invoice.id,
+          userId: session?.user?.id,
+        });
+      }
+    }
+
+    await tx.invoice.update({
+      where: { id: invoiceId },
+      data: { status: computeStatus(Number(invoice.total), Number(invoice.paidAmount)) },
     });
 
     return invoice.customerId;
