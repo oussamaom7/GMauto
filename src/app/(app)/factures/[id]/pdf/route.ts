@@ -5,7 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { generateInvoicePdf } from "@/lib/pdf/generateInvoicePdf";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -14,6 +14,7 @@ export async function GET(
   }
 
   const { id } = await params;
+  const hidePrices = new URL(req.url).searchParams.get("hidePrices") === "1";
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
@@ -28,12 +29,13 @@ export async function GET(
   }
 
   const settings = await getSettings();
-  const pdfBuffer = await generateInvoicePdf(invoice, settings);
+  const pdfBuffer = await generateInvoicePdf(invoice, settings, { hidePrices });
+  const filename = hidePrices ? `${invoice.number}-sans-prix.pdf` : `${invoice.number}.pdf`;
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${invoice.number}.pdf"`,
+      "Content-Disposition": `inline; filename="${filename}"`,
     },
   });
 }

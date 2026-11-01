@@ -17,7 +17,8 @@ const PHOTO_SIZE = 24;
 
 export async function generateInvoicePdf(
   invoice: InvoiceWithRelations,
-  settings: Settings
+  settings: Settings,
+  { hidePrices = false }: { hidePrices?: boolean } = {}
 ): Promise<Buffer> {
   const [logoBuffer, photoBuffers] = await Promise.all([
     loadImageBuffer(settings.companyLogoUrl),
@@ -90,15 +91,24 @@ export async function generateInvoicePdf(
 
     y = Math.max(clientY, blockTop + 40) + 20;
 
-    // Items table
-    const cols = {
-      photo: { x: MARGIN, width: 34 },
-      desc: { x: MARGIN + 34, width: contentWidth * 0.4 - 34 },
-      qty: { x: MARGIN + contentWidth * 0.4, width: contentWidth * 0.13 },
-      pu: { x: MARGIN + contentWidth * 0.53, width: contentWidth * 0.17 },
-      tva: { x: MARGIN + contentWidth * 0.7, width: contentWidth * 0.1 },
-      montant: { x: MARGIN + contentWidth * 0.8, width: contentWidth * 0.2 },
-    };
+    // Items table — two column layouts depending on hidePrices
+    const cols = hidePrices
+      ? {
+          photo: { x: MARGIN, width: 34 },
+          desc: { x: MARGIN + 34, width: contentWidth * 0.72 - 34 },
+          qty: { x: MARGIN + contentWidth * 0.72, width: contentWidth * 0.28 },
+          pu: null,
+          tva: null,
+          montant: null,
+        }
+      : {
+          photo: { x: MARGIN, width: 34 },
+          desc: { x: MARGIN + 34, width: contentWidth * 0.4 - 34 },
+          qty: { x: MARGIN + contentWidth * 0.4, width: contentWidth * 0.13 },
+          pu: { x: MARGIN + contentWidth * 0.53, width: contentWidth * 0.17 },
+          tva: { x: MARGIN + contentWidth * 0.7, width: contentWidth * 0.1 },
+          montant: { x: MARGIN + contentWidth * 0.8, width: contentWidth * 0.2 },
+        };
     const headerHeight = 24;
 
     function drawTableHeader() {
@@ -107,9 +117,11 @@ export async function generateInvoicePdf(
       doc.text("PHOTO", cols.photo.x + 4, y + 8, { width: cols.photo.width });
       doc.text("DÉSIGNATION", cols.desc.x + 8, y + 8, { width: cols.desc.width - 8 });
       doc.text("QUANTITÉ", cols.qty.x, y + 8, { width: cols.qty.width, align: "right" });
-      doc.text("PRIX UNITAIRE", cols.pu.x, y + 8, { width: cols.pu.width - 8, align: "right" });
-      doc.text("TVA", cols.tva.x, y + 8, { width: cols.tva.width, align: "right" });
-      doc.text("MONTANT", cols.montant.x, y + 8, { width: cols.montant.width - 8, align: "right" });
+      if (!hidePrices && cols.pu && cols.tva && cols.montant) {
+        doc.text("PRIX UNITAIRE", cols.pu.x, y + 8, { width: cols.pu.width - 8, align: "right" });
+        doc.text("TVA", cols.tva.x, y + 8, { width: cols.tva.width, align: "right" });
+        doc.text("MONTANT", cols.montant.x, y + 8, { width: cols.montant.width - 8, align: "right" });
+      }
       y += headerHeight;
     }
 
@@ -148,9 +160,11 @@ export async function generateInvoicePdf(
       doc.text(item.description, cols.desc.x + 8, rowTop + 10, { width: cols.desc.width - 12 });
       const valueY = rowTop + (rowHeight - 12) / 2;
       doc.text(String(item.quantity), cols.qty.x, valueY, { width: cols.qty.width, align: "right" });
-      doc.text(formatInvoiceAmount(item.unitPrice, invoice.currency), cols.pu.x, valueY, { width: cols.pu.width - 8, align: "right" });
-      doc.text(`${vatRate}%`, cols.tva.x, valueY, { width: cols.tva.width, align: "right" });
-      doc.text(formatInvoiceAmount(item.total, invoice.currency), cols.montant.x, valueY, { width: cols.montant.width - 8, align: "right" });
+      if (!hidePrices && cols.pu && cols.tva && cols.montant) {
+        doc.text(formatInvoiceAmount(item.unitPrice, invoice.currency), cols.pu.x, valueY, { width: cols.pu.width - 8, align: "right" });
+        doc.text(`${vatRate}%`, cols.tva.x, valueY, { width: cols.tva.width, align: "right" });
+        doc.text(formatInvoiceAmount(item.total, invoice.currency), cols.montant.x, valueY, { width: cols.montant.width - 8, align: "right" });
+      }
       y += rowHeight;
       doc.moveTo(MARGIN, y).lineTo(MARGIN + contentWidth, y).strokeColor(BORDER_COLOR).stroke();
     });
@@ -161,7 +175,7 @@ export async function generateInvoicePdf(
       y = MARGIN;
     }
 
-    // Totals block
+    // Totals block — only piece count when prices are hidden
     const totalsWidth = 220;
     const totalsX = MARGIN + contentWidth - totalsWidth;
 
@@ -175,16 +189,19 @@ export async function generateInvoicePdf(
 
     const totalPieces = invoice.items.reduce((sum, item) => sum + item.quantity, 0);
     totalLine("NOMBRE DE PIÈCES", String(totalPieces));
-    totalLine("SOUS-TOTAL", formatInvoiceAmount(invoice.subtotal, invoice.currency));
-    totalLine(`TVA (${vatRate}%)`, formatInvoiceAmount(invoice.vatAmount, invoice.currency));
-    doc.moveTo(totalsX, y).lineTo(totalsX + totalsWidth, y).strokeColor(BORDER_COLOR).stroke();
-    y += 6;
-    totalLine("TOTAL", formatInvoiceAmount(invoice.total, invoice.currency), { bold: true });
-    totalLine("PAYÉ", formatInvoiceAmount(invoice.paidAmount, invoice.currency));
-    totalLine("SOLDE À PAYER", formatInvoiceAmount(invoice.remainingAmount, invoice.currency), {
-      bold: true,
-      color: Number(invoice.remainingAmount) > 0 ? "#b91c1c" : "#15803d",
-    });
+
+    if (!hidePrices) {
+      totalLine("SOUS-TOTAL", formatInvoiceAmount(invoice.subtotal, invoice.currency));
+      totalLine(`TVA (${vatRate}%)`, formatInvoiceAmount(invoice.vatAmount, invoice.currency));
+      doc.moveTo(totalsX, y).lineTo(totalsX + totalsWidth, y).strokeColor(BORDER_COLOR).stroke();
+      y += 6;
+      totalLine("TOTAL", formatInvoiceAmount(invoice.total, invoice.currency), { bold: true });
+      totalLine("PAYÉ", formatInvoiceAmount(invoice.paidAmount, invoice.currency));
+      totalLine("SOLDE À PAYER", formatInvoiceAmount(invoice.remainingAmount, invoice.currency), {
+        bold: true,
+        color: Number(invoice.remainingAmount) > 0 ? "#b91c1c" : "#15803d",
+      });
+    }
 
     const footerParts = [
       settings.companyAddress,
