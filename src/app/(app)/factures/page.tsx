@@ -1,12 +1,9 @@
-import { Plus, Receipt, Eye } from "lucide-react";
+import { Plus, Receipt } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { StatusBadge } from "@/components/invoices/StatusBadge";
-import { DeleteInvoiceButton } from "@/components/invoices/DeleteInvoiceButton";
-import { formatDate, formatInvoiceAmount } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Table, THead, TH, TR, TD } from "@/components/ui/Table";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FacturesTable } from "@/components/invoices/FacturesTable";
 
 export default async function FacturesPage() {
   const invoices = await prisma.invoice.findMany({
@@ -34,39 +31,7 @@ export default async function FacturesPage() {
           action={<Button href="/factures/nouveau">Nouvelle facture</Button>}
         />
       ) : (
-        <Table minWidth={680}>
-          <THead>
-            <TH>N°</TH>
-            <TH>Client</TH>
-            <TH>Date</TH>
-            <TH>Total</TH>
-            <TH>Solde</TH>
-            <TH>Statut</TH>
-            <TH className="sticky right-0 bg-zinc-50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900" />
-          </THead>
-          <tbody>
-            {invoices.map((inv) => (
-              <TR key={inv.id}>
-                <TD className="font-medium text-zinc-900 dark:text-zinc-50">{inv.number}</TD>
-                <TD>{inv.customer.name}</TD>
-                <TD>{formatDate(inv.date)}</TD>
-                <TD className="tabular-nums font-medium">{formatInvoiceAmount(inv.total, inv.currency)}</TD>
-                <TD className="tabular-nums">{formatInvoiceAmount(inv.remainingAmount, inv.currency)}</TD>
-                <TD>
-                  <StatusBadge status={inv.status} />
-                </TD>
-                <TD className="sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)] dark:bg-zinc-900">
-                  <div className="flex justify-end gap-1.5">
-                    <Button href={`/factures/${inv.id}`} variant="secondary" size="sm" icon={<Eye size={14} />}>
-                      Voir
-                    </Button>
-                    <DeleteInvoiceButton invoiceId={inv.id} invoiceNumber={inv.number} size="sm" />
-                  </div>
-                </TD>
-              </TR>
-            ))}
-          </tbody>
-        </Table>
+        <FacturesTable invoices={invoices} />
       )}
     </div>
   );
