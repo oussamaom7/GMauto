@@ -36,3 +36,43 @@ export async function recordStockMovement(
     },
   });
 }
+
+type StockMovementParams = Parameters<typeof recordStockMovement>[1];
+
+/**
+ * Batched equivalent of calling recordStockMovement per line: one product
+ * update per distinct product (deltas summed) plus a single createMany for
+ * the movement rows, so cost doesn't grow with the number of invoice lines.
+ */
+export async function recordStockMovements(
+  tx: TxClient,
+  movements: StockMovementParams[]
+) {
+  if (movements.length === 0) return;
+
+  const deltaByProduct = new Map<string, number>();
+  for (const m of movements) {
+    deltaByProduct.set(m.productId, (deltaByProduct.get(m.productId) ?? 0) + m.delta);
+  }
+
+  await Promise.all(
+    [...deltaByProduct].map(([productId, delta]) =>
+      tx.product.update({
+        where: { id: productId },
+        data: { quantity: { increment: delta } },
+      })
+    )
+  );
+
+  await tx.stockMovement.createMany({
+    data: movements.map((m) => ({
+      productId: m.productId,
+      type: m.type,
+      quantity: m.delta,
+      reference: m.reference,
+      invoiceId: m.invoiceId,
+      userId: m.userId,
+      note: m.note,
+    })),
+  });
+}

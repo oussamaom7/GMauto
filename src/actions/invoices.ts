@@ -12,7 +12,7 @@ import {
 } from "@/lib/validation/invoice";
 import { getNextInvoiceNumber } from "@/lib/invoiceNumbering";
 import { getSettings } from "@/lib/settings";
-import { recordStockMovement } from "@/lib/stock";
+import { recordStockMovement, recordStockMovements } from "@/lib/stock";
 import { toMad } from "@/lib/currency";
 
 export type ActionState = { error: string } | undefined;
@@ -110,18 +110,23 @@ export async function createInvoice(
       include: { items: true },
     });
 
-    for (const item of invoice.items) {
-      if (item.productId) {
-        await recordStockMovement(tx, {
-          productId: item.productId,
-          type: "SORTIE",
-          delta: -item.quantity,
-          reference: invoice.number,
-          invoiceId: invoice.id,
-          userId: session?.user?.id,
-        });
-      }
-    }
+    await recordStockMovements(
+      tx,
+      invoice.items.flatMap((item) =>
+        item.productId
+          ? [
+              {
+                productId: item.productId,
+                type: "SORTIE" as const,
+                delta: -item.quantity,
+                reference: invoice.number,
+                invoiceId: invoice.id,
+                userId: session?.user?.id,
+              },
+            ]
+          : []
+      )
+    );
 
     return { invoiceId: invoice.id, customerId };
   });
@@ -189,17 +194,22 @@ export async function updateInvoice(
       // then re-deduct fresh for the edited items below — simpler and more
       // robust than diffing old vs new line-by-line, and it keeps a full,
       // honest movement history instead of silently rewriting it.
-      for (const item of existing.items) {
-        if (item.productId) {
-          await recordStockMovement(tx, {
-            productId: item.productId,
-            type: "ENTREE",
-            delta: item.quantity,
-            reference: `Modification ${existing.number}`,
-            userId: session?.user?.id,
-          });
-        }
-      }
+      await recordStockMovements(
+        tx,
+        existing.items.flatMap((item) =>
+          item.productId
+            ? [
+                {
+                  productId: item.productId,
+                  type: "ENTREE" as const,
+                  delta: item.quantity,
+                  reference: `Modification ${existing.number}`,
+                  userId: session?.user?.id,
+                },
+              ]
+            : []
+        )
+      );
 
       const customerId = parsed.data.customerId
         ? parsed.data.customerId
@@ -247,18 +257,23 @@ export async function updateInvoice(
         include: { items: true },
       });
 
-      for (const item of updated.items) {
-        if (item.productId) {
-          await recordStockMovement(tx, {
-            productId: item.productId,
-            type: "SORTIE",
-            delta: -item.quantity,
-            reference: updated.number,
-            invoiceId: updated.id,
-            userId: session?.user?.id,
-          });
-        }
-      }
+      await recordStockMovements(
+        tx,
+        updated.items.flatMap((item) =>
+          item.productId
+            ? [
+                {
+                  productId: item.productId,
+                  type: "SORTIE" as const,
+                  delta: -item.quantity,
+                  reference: updated.number,
+                  invoiceId: updated.id,
+                  userId: session?.user?.id,
+                },
+              ]
+            : []
+        )
+      );
 
       return customerId;
     });
